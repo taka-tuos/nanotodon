@@ -10,17 +10,19 @@
 
 char *streaming_json = NULL;
 
-#define URI "api/v1/streaming/public"
+#define URI "api/v1/streaming/user"
 
 void (*streaming_recieved_handler)(void);
 void (*stream_event_handler)(char *json);
 
 WINDOW *scr;
+WINDOW *pad;
 
 char access_token[256];
 char domain_string[256];
 
 int term_w, term_h;
+int pad_x = 0, pad_y = 0;
 
 char *create_uri_string(char *api)
 {
@@ -85,11 +87,35 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 
 void stream_event_update(char *json)
 {
-	struct json_object *content, *screen_name, *display_name;
+	struct json_object *content, *screen_name, *display_name, *reblog;
 	struct json_object *jobj_from_string = json_tokener_parse(json);
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
+	read_json_fom_path(jobj_from_string, "reblog", &reblog);
+	
+	FILE *fp = fopen("json.log", "a+");
+	
+	fprintf(fp, "%s\n\n", json);
+	
+	fclose(fp);
+	
+	enum json_type type;
+	
+	type = json_object_get_type(reblog);
+	
+	if(type != json_type_null) {
+		wattron(scr, COLOR_PAIR(2));
+		waddstr(scr, "🔃 Boosted by ");
+		waddstr(scr, json_object_get_string(screen_name));
+		waddstr(scr, "(");
+		waddstr(scr, json_object_get_string(display_name));
+		waddstr(scr, ")\n");
+		wattroff(scr, COLOR_PAIR(2));
+		stream_event_update(json_object_to_json_string(reblog));
+		json_object_put(jobj_from_string);
+		return;
+	}
 	
 	wattron(scr, COLOR_PAIR(1));
 	waddstr(scr, json_object_get_string(screen_name));
@@ -100,10 +126,51 @@ void stream_event_update(char *json)
 	waddstr(scr, ")");
 	wattroff(scr, COLOR_PAIR(2));
 	waddstr(scr, "\n");
-	waddstr(scr, json_object_get_string(content));
+	
+	char *src = json_object_get_string(content);
+	
+	/*waddstr(scr, src);
+	waddstr(scr, "\n");*/
+	
+	int ltgt = 0;
+	while(*src) {
+		if(*src == '<') ltgt = 1;
+		if(!ltgt) {
+			if(*src == '&') {
+				if(strncmp(src, "&amp;", 5) == 0) {
+					waddch(scr, '&');
+					src += 4;
+				}
+				else if(strncmp(src, "&lt;", 4) == 0) {
+					waddch(scr, '<');
+					src += 3;
+				}
+				else if(strncmp(src, "&gt;", 4) == 0) {
+					waddch(scr, '>');
+					src += 3;
+				}
+				else if(strncmp(src, "&quot;", 6) == 0) {
+					waddch(scr, '\"');
+					src += 5;
+				}
+				else if(strncmp(src, "&apos;", 6) == 0) {
+					waddch(scr, '\'');
+					src += 5;
+				}
+			} else {
+				waddch(scr, *((unsigned char *)src));
+			}
+		}
+		if(*src == '>') ltgt = 0;
+		src++;
+	}
+	
 	waddstr(scr, "\n");
 	waddstr(scr, "\n");
 	wrefresh(scr);
+	
+	wmove(pad, pad_x, pad_y);
+	wrefresh(pad);
 	
 	json_object_put(jobj_from_string);
 }
@@ -111,8 +178,6 @@ void stream_event_update(char *json)
 void streaming_recieved(void)
 {
 	if(strncmp(streaming_json, "event", 5) == 0) {
-		/*waddstr(scr, "[EVENT]\n");
-		wrefresh(scr);*/
 		char *type = strdup(streaming_json + 7);
 		if(strncmp(type, "update", 6) == 0) stream_event_handler = stream_event_update;
 		else stream_event_handler = NULL;
@@ -127,15 +192,11 @@ void streaming_recieved(void)
 		free(top);
 	}
 	if(strncmp(streaming_json, "data", 4) == 0) {
-		/*waddstr(scr, "[DATA]");
-		wrefresh(scr);*/
 		if(stream_event_handler) {
 			stream_event_handler(streaming_json + 6);
 			stream_event_handler = NULL;
 		}
 	}
-	/*waddstr(scr, "[RETURNED]");
-	wrefresh(scr);*/
 	
 	free(streaming_json);
 	streaming_json = NULL;
@@ -425,9 +486,9 @@ int main(int argc, char *argv[])
 	
 	getmaxyx(term, term_h, term_w);
 	
-	scr = newwin(term_h, term_w / 2, 0, 0);
+	scr = newwin(term_h - 1, term_w / 2, 1, 0);
 	
-	WINDOW *pad = newwin(term_h, term_w / 2, 0, term_w / 2);
+	pad = newwin(term_h - 1, term_w / 2, 1, term_w / 2);
 	
 	scrollok(scr, 1);
 	
@@ -494,7 +555,7 @@ retry1:
 		waddstr(pad, "次に、アプリケーションの認証をするよ。\n");
 		waddstr(pad, "下に表示されるURLにアクセスして承認をしたら表示されるコードを入力してね。\n");
 		wrefresh(pad);
-		wprintw(pad, "https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow", domain, ck);
+		wprintw(pad, "https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
 		wrefresh(pad);
 		waddstr(pad, ">");
 		wrefresh(pad);
@@ -528,14 +589,33 @@ retry1:
 	stb_textedit_initialize_state(&state, 0);
 	
 	keypad(pad, TRUE);
+	noecho();
+	
+	mvaddch(0, term_w/2, '[');
+	attron(COLOR_PAIR(1));
+	addstr("toot欄(escで投稿)");
+	attroff(COLOR_PAIR(1));
+	mvaddch(0, term_w-1, ']');
+	mvaddch(0, 0, '[');
+	attron(COLOR_PAIR(2));
+	addstr("Timeline(");
+	addstr(URI);
+	addstr(")");
+	attroff(COLOR_PAIR(2));
+	mvaddch(0, term_w/2-1, ']');
+	refresh();
+	wmove(pad, 0, 0);
 	
 	while (1)
 	{
 		wchar_t c;
 		wget_wch(pad, &c);
-		if(c == 0x1b) {
+		if(c == 0x1b && txt.string) {
+			wchar_t *text = malloc(sizeof(wchar_t) * (txt.stringlen + 1));
+			memcpy(text, txt.string, sizeof(wchar_t) * txt.stringlen);
+			text[txt.stringlen] = 0;
 			char status[1024];
-			wcstombs(status, txt.string, 1024);
+			wcstombs(status, text, 1024);
 			do_toot(status);
 			txt.string = 0;
 			txt.stringlen = 0;
@@ -554,7 +634,11 @@ retry1:
 			wcstombs(mb, s, 8);
 			waddstr(pad, mb);
 		}
-		if(cx>=0&&cy>=0) wmove(pad, cx, cy);
+		if(cx>=0&&cy>=0) {
+			wmove(pad, cx, cy);
+			pad_x = cx;
+			pad_y = cy;
+		}
 		wrefresh(pad);
 	}
 
