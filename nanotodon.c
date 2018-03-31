@@ -417,13 +417,6 @@ void do_oauth(char *code, char *ck, char *cs)
 	hnd = NULL;
 	curl_formfree(post1);
 	post1 = NULL;
-
-	ret = curl_easy_perform(hnd);
-	
-	fclose(f);
-	
-	curl_easy_cleanup(hnd);
-	hnd = NULL;
 }
 
 void do_toot(char *s)
@@ -475,29 +468,6 @@ void do_toot(char *s)
 
 int main(int argc, char *argv[])
 {
-	setlocale(LC_ALL, "");
-	
-	WINDOW *term = initscr();
-	
-	start_color();
-	
-	init_pair(1, COLOR_GREEN, COLOR_BLACK);
-	init_pair(2, COLOR_CYAN, COLOR_BLACK);
-	
-	getmaxyx(term, term_h, term_w);
-	
-	scr = newwin(term_h - 1, term_w / 2, 1, 0);
-	
-	pad = newwin(term_h - 1, term_w / 2, 1, term_w / 2);
-	
-	scrollok(scr, 1);
-	
-	wrefresh(scr);
-	
-	pthread_t stream_thread;
-	
-	setlocale(LC_ALL, "");
-	
 	FILE *fp = fopen(".nanotter", "rb");
 	if(fp) {
 		fclose(fp);
@@ -513,15 +483,13 @@ int main(int argc, char *argv[])
 		char key[256];
 		char *ck;
 		char *cs;
-		waddstr(pad, "はじめまして！ようこそnaotodonへ!\n");
-		waddstr(pad, "最初に、");
+		printf("はじめまして！ようこそnaotodonへ!\n");
+		printf("最初に、");
 retry1:
-		waddstr(pad, "あなたのいるインスタンスを教えてね。\n(https://[ここを入れてね]/)\n");
-		waddstr(pad, ">");
-		wrefresh(pad);
-		wscanw(pad, "%255s", domain);
-		waddstr(pad, "\n");
-		wrefresh(pad);
+		printf("あなたのいるインスタンスを教えてね。\n(https://[ここを入れてね]/)\n");
+		printf(">");
+		scanf("%255s", domain);
+		printf("\n");
 		
 		FILE *f2 = fopen(".nanotter2", "wb");
 		fprintf(f2, "%s", domain);
@@ -542,7 +510,7 @@ retry1:
 		int r1 = read_json_fom_path(jobj_from_file, "client_id", &cko);
 		int r2 = read_json_fom_path(jobj_from_file, "client_secret", &cso);
 		if(!r1 || !r2) {
-			waddstr(pad, "何かがおかしいみたいだよ。\nもう一度やり直すね。");
+			printf("何かがおかしいみたいだよ。\nもう一度やり直すね。");
 			remove(json_name);
 			remove(".nanotter2");
 			goto retry1;
@@ -552,31 +520,47 @@ retry1:
 		
 		char code[256];
 		
-		waddstr(pad, "次に、アプリケーションの認証をするよ。\n");
-		waddstr(pad, "下に表示されるURLにアクセスして承認をしたら表示されるコードを入力してね。\n");
-		wrefresh(pad);
-		wprintw(pad, "https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
-		wrefresh(pad);
-		waddstr(pad, ">");
-		wrefresh(pad);
-		wscanw(pad, "%255s", code);
-		waddstr(pad, "\n");
-		wrefresh(pad);
+		printf("次に、アプリケーションの認証をするよ。\n");
+		printf("下に表示されるURLにアクセスして承認をしたら表示されるコードを入力してね。\n");
+		printf("https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
+		printf(">");
+		scanf("%255s", code);
+		printf("\n");
 		do_oauth(code, ck, cs);
 		struct json_object *token;
 		jobj_from_file = json_object_from_file(".nanotter");
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
 		if(!r1 || !r2) {
-			waddstr(pad, "何かがおかしいみたいだよ。\n入力したコードはあっているかな？\nもう一度やり直すね。");
+			printf("何かがおかしいみたいだよ。\n入力したコードはあっているかな？\nもう一度やり直すね。");
 			remove(json_name);
 			remove(".nanotter2");
 			remove(".nanotter");
 			goto retry1;
 		}
 		sprintf(access_token, "Authorization: Bearer %s", json_object_get_string(token));
-		waddstr(pad, "これでおしまい!\nnanotodonライフを楽しんでね!\n");
-		wrefresh(pad);
+		printf("これでおしまい!\nnanotodonライフを楽しんでね!\n");
 	}
+	
+	setlocale(LC_ALL, "");
+	
+	WINDOW *term = initscr();
+	
+	start_color();
+	
+	init_pair(1, COLOR_GREEN, COLOR_BLACK);
+	init_pair(2, COLOR_CYAN, COLOR_BLACK);
+	
+	getmaxyx(term, term_h, term_w);
+	
+	scr = newwin(term_h - 6, term_w, 6, 0);
+	
+	pad = newwin(5, term_w, 0, 0);
+	
+	scrollok(scr, 1);
+	
+	wrefresh(scr);
+	
+	pthread_t stream_thread;
 	
 	pthread_create(&stream_thread, NULL, stream_thread_func, NULL);
 	
@@ -591,7 +575,12 @@ retry1:
 	keypad(pad, TRUE);
 	noecho();
 	
-	mvaddch(0, term_w/2, '[');
+	attron(COLOR_PAIR(2));
+	for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
+	attroff(COLOR_PAIR(2));
+	refresh();
+	
+	/*mvaddch(0, term_w/2, '[');
 	attron(COLOR_PAIR(1));
 	addstr("toot欄(escで投稿)");
 	attroff(COLOR_PAIR(1));
@@ -604,7 +593,7 @@ retry1:
 	attroff(COLOR_PAIR(2));
 	mvaddch(0, term_w/2-1, ']');
 	refresh();
-	wmove(pad, 0, 0);
+	wmove(pad, 0, 0);*/
 	
 	while (1)
 	{
