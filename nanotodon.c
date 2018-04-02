@@ -68,8 +68,6 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	
 	size_t realsize = size * nmemb;
 	
-	if(*((char *)ptr) == ':') return realsize;
-	
 	size_t length = realsize + 1;
 	char *str = *json;
 	str = realloc(str, (str ? strlen(str) : 0) + length);
@@ -79,7 +77,14 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	
 	if (str != NULL) {
 		strncat(str, ptr, realsize);
-		streaming_recieved_handler();
+		if(str[strlen(str)-1] == 0x0a) {
+			if(*str == ':') {
+				free(str);
+				*json = NULL;
+			} else {
+				streaming_recieved_handler();
+			}
+		}
 	}
 
 	return realsize;
