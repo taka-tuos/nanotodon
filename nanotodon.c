@@ -535,7 +535,7 @@ retry1:
 		struct json_object *token;
 		jobj_from_file = json_object_from_file(".nanotter");
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
-		if(!r1 || !r2) {
+		if(!r3) {
 			printf("何かがおかしいみたいだよ。\n入力したコードはあっているかな？\nもう一度やり直すね。");
 			remove(json_name);
 			remove(".nanotter2");
