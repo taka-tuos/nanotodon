@@ -140,6 +140,7 @@ void stream_event_update(char *json)
 	int ltgt = 0;
 	while(*src) {
 		if(*src == '<') ltgt = 1;
+		if(ltgt && strncmp(src, "<br", 3) == 0) waddch(scr, '\n');
 		if(!ltgt) {
 			if(*src == '&') {
 				if(strncmp(src, "&amp;", 5) == 0) {
@@ -605,6 +606,7 @@ retry1:
 		wchar_t c;
 		wget_wch(pad, &c);
 		if(c == 0x1b && txt.string) {
+			werase(pad);
 			wchar_t *text = malloc(sizeof(wchar_t) * (txt.stringlen + 1));
 			memcpy(text, txt.string, sizeof(wchar_t) * txt.stringlen);
 			text[txt.stringlen] = 0;
