@@ -172,6 +172,24 @@ void stream_event_update(char *json)
 	}
 	
 	waddstr(scr, "\n");
+	
+	struct json_object *media_attachments;
+	
+	read_json_fom_path(jobj_from_string, "media_attachments", &media_attachments);
+	
+	if(json_object_is_type(media_attachments, json_type_array)) {
+		for (int i = 0; i < json_object_array_length(media_attachments); ++i) {
+			struct json_object *obj = json_object_array_get_idx(media_attachments, i);
+			struct json_object *url;
+			read_json_fom_path(obj, "url", &url);
+			if(json_object_is_type(url, json_type_string)) {
+				waddstr(scr, json_object_get_string(url));
+				waddstr(scr, "\n");
+			}
+		}
+	}
+	
+	
 	waddstr(scr, "\n");
 	wrefresh(scr);
 	
