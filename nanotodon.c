@@ -331,7 +331,7 @@ int insert_chars(STB_TEXTEDIT_STRING *str, int pos, STB_TEXTEDIT_CHARTYPE *newte
 #define STB_TEXTEDIT_K_TEXTSTART       KEY_SHOME
 #define STB_TEXTEDIT_K_TEXTEND         KEY_SEND
 #define STB_TEXTEDIT_K_DELETE          KEY_DC
-#define STB_TEXTEDIT_K_BACKSPACE       KEY_BACKSPACE
+#define STB_TEXTEDIT_K_BACKSPACE       0x7f
 #define STB_TEXTEDIT_K_UNDO            KEY_UNDO
 #define STB_TEXTEDIT_K_REDO            KEY_REDO
 #define STB_TEXTEDIT_K_INSERT          0xffff0400
