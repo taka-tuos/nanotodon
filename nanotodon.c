@@ -90,6 +90,48 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	return realsize;
 }
 
+void stream_event_notify(struct json_object *jobj_from_string)
+{
+	struct json_object *notify_type, *screen_name, *display_name, *status;
+	if(!jobj_from_string) return;
+	read_json_fom_path(jobj_from_string, "type", &notify_type);
+	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
+	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
+	int exist_status = read_json_fom_path(jobj_from_string, "status", &status);
+	
+	FILE *fp = fopen("json.log", "a+");
+	
+	fputs(json_object_to_json_string(jobj_from_string), fp);
+	fputs("\n\n", fp);
+	fclose(fp);
+	
+	char *t = json_object_get_string(notify_type);
+	t[0] = toupper(t[0]);
+	
+	wattron(scr, COLOR_PAIR(2));
+	waddstr(scr, t);
+	waddstr(scr, " from ");
+	waddstr(scr, json_object_get_string(screen_name));
+	waddstr(scr, "(");
+	waddstr(scr, json_object_get_string(display_name));
+	waddstr(scr, ")\n");
+	wattroff(scr, COLOR_PAIR(2));
+	
+	enum json_type type;
+	
+	type = json_object_get_type(status);
+	
+	if(type != json_type_null && exist_status) {
+		stream_event_update(status);
+	}
+	
+	waddstr(scr, "\n");
+	wrefresh(scr);
+	
+	wmove(pad, pad_x, pad_y);
+	wrefresh(pad);
+}
+
 void stream_event_update(struct json_object *jobj_from_string)
 {
 	struct json_object *content, *screen_name, *display_name, *reblog;
@@ -112,7 +154,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 	
 	if(type != json_type_null) {
 		wattron(scr, COLOR_PAIR(2));
-		waddstr(scr, "🔃 Boosted by ");
+		waddstr(scr, "🔃 Reblog by ");
 		waddstr(scr, json_object_get_string(screen_name));
 		waddstr(scr, "(");
 		waddstr(scr, json_object_get_string(display_name));
@@ -205,6 +247,7 @@ void streaming_recieved(void)
 	if(strncmp(streaming_json, "event", 5) == 0) {
 		char *type = strdup(streaming_json + 7);
 		if(strncmp(type, "update", 6) == 0) stream_event_handler = stream_event_update;
+		else if(strncmp(type, "notification", 12) == 0) stream_event_handler = stream_event_notify;
 		else stream_event_handler = NULL;
 		
 		char *top = type;
