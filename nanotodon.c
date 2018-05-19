@@ -6,14 +6,14 @@
 #include <ctype.h>  // isspace
 #include <locale.h> // setlocale
 #include <curses.h>
-#include <ncursesw/curses.h>
+#include <ncurses.h>
 
 char *streaming_json = NULL;
 
 #define URI "api/v1/streaming/user"
 
 void (*streaming_recieved_handler)(void);
-void (*stream_event_handler)(char *json);
+void (*stream_event_handler)(struct json_object *);
 
 WINDOW *scr;
 WINDOW *pad;
@@ -90,10 +90,11 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	return realsize;
 }
 
-void stream_event_update(char *json)
+void stream_event_update(struct json_object *jobj_from_string)
 {
 	struct json_object *content, *screen_name, *display_name, *reblog;
-	struct json_object *jobj_from_string = json_tokener_parse(json);
+	//struct json_object *jobj_from_string = json_tokener_parse(json);
+	if(!jobj_from_string) return;
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
@@ -101,8 +102,8 @@ void stream_event_update(char *json)
 	
 	FILE *fp = fopen("json.log", "a+");
 	
-	fprintf(fp, "%s\n\n", json);
-	
+	fputs(json_object_to_json_string(jobj_from_string), fp);
+	fputs("\n\n", fp);
 	fclose(fp);
 	
 	enum json_type type;
@@ -117,8 +118,7 @@ void stream_event_update(char *json)
 		waddstr(scr, json_object_get_string(display_name));
 		waddstr(scr, ")\n");
 		wattroff(scr, COLOR_PAIR(2));
-		stream_event_update(json_object_to_json_string(reblog));
-		json_object_put(jobj_from_string);
+		stream_event_update(reblog);
 		return;
 	}
 	
@@ -183,6 +183,7 @@ void stream_event_update(char *json)
 			struct json_object *url;
 			read_json_fom_path(obj, "url", &url);
 			if(json_object_is_type(url, json_type_string)) {
+				waddstr(scr, "📁");
 				waddstr(scr, json_object_get_string(url));
 				waddstr(scr, "\n");
 			}
@@ -196,7 +197,7 @@ void stream_event_update(char *json)
 	wmove(pad, pad_x, pad_y);
 	wrefresh(pad);
 	
-	json_object_put(jobj_from_string);
+	//json_object_put(jobj_from_string);
 }
 
 void streaming_recieved(void)
@@ -217,7 +218,9 @@ void streaming_recieved(void)
 	}
 	if(strncmp(streaming_json, "data", 4) == 0) {
 		if(stream_event_handler) {
-			stream_event_handler(streaming_json + 6);
+			struct json_object *jobj_from_string = json_tokener_parse(streaming_json + 6);
+			stream_event_handler(jobj_from_string);
+			json_object_put(jobj_from_string);
 			stream_event_handler = NULL;
 		}
 	}
@@ -228,6 +231,8 @@ void streaming_recieved(void)
 
 void *stream_thread_func(void *param)
 {
+	do_htl();
+	
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_slist *slist1;
@@ -486,6 +491,78 @@ void do_toot(char *s)
 	hnd = NULL;
 	curl_formfree(post1);
 	post1 = NULL;
+	curl_slist_free_all(slist1);
+	slist1 = NULL;
+}
+
+size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
+	if (size * nmemb == 0)
+		return 0;
+	
+	char **json = ((char **)data);
+	
+	size_t realsize = size * nmemb;
+	
+	size_t length = realsize + 1;
+	char *str = *json;
+	str = realloc(str, (str ? strlen(str) : 0) + length);
+	if(*((char **)data) == NULL) strcpy(str, "");
+	
+	*json = str;
+	
+	if (str != NULL) {
+		strncat(str, ptr, realsize);
+	}
+
+	return realsize;
+}
+
+void do_htl()
+{
+	CURLcode ret;
+	CURL *hnd;
+	struct curl_slist *slist1;
+
+	slist1 = NULL;
+	slist1 = curl_slist_append(slist1, access_token);
+	
+	char *json = NULL;
+
+	hnd = curl_easy_init();
+	curl_easy_setopt(hnd, CURLOPT_URL, create_uri_string("api/v1/timelines/home"));
+	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
+	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
+	curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
+	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
+	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
+	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, (void *)&json);
+	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, htl_callback);
+	
+	ret = curl_easy_perform(hnd);
+	
+	struct json_object *jobj_from_string = json_tokener_parse(json);
+	enum json_type type;
+	
+	type = json_object_get_type(jobj_from_string);
+	
+	if(type == json_type_array) {
+		for (int i = json_object_array_length(jobj_from_string) - 1; i >= 0; i--) {
+			struct json_object *obj = json_object_array_get_idx(jobj_from_string, i);
+			
+			stream_event_update(obj);
+			
+			char *p = strdup(json_object_to_json_string(obj));
+			
+			FILE *fp = fopen("rest_json.log","wt");
+			fputs(p, fp);
+			fclose(fp);
+		}
+	}
+	
+	json_object_put(jobj_from_string);
+
+	curl_easy_cleanup(hnd);
+	hnd = NULL;
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
 }
