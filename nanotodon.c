@@ -800,18 +800,21 @@ retry1:
 		wmove(pad, 0, 0);
 		int cx=-1, cy=-1;
 		for(int i = 0; i < txt.stringlen; i++) {
+			if(i == state.cursor) getyx(pad, cx, cy);
 			wchar_t s[2];
 			char mb[8];
 			s[0] = txt.string[i];
 			s[1] = 0;
 			wcstombs(mb, s, 8);
 			waddstr(pad, mb);
-			if(i == state.cursor-1) getyx(pad, cx, cy);
 		}
 		if(cx>=0&&cy>=0) {
 			wmove(pad, cx, cy);
 			pad_x = cx;
 			pad_y = cy;
+		} else {
+			pad_x = 0;
+			pad_y = 0;
 		}
 		wrefresh(pad);
 	}
