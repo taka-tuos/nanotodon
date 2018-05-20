@@ -99,6 +99,8 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
 	int exist_status = read_json_fom_path(jobj_from_string, "status", &status);
 	
+	putchar('\a');
+	
 	FILE *fp = fopen("json.log", "a+");
 	
 	fputs(json_object_to_json_string(jobj_from_string), fp);
@@ -108,14 +110,15 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	char *t = json_object_get_string(notify_type);
 	t[0] = toupper(t[0]);
 	
-	wattron(scr, COLOR_PAIR(2));
+	wattron(scr, COLOR_PAIR(4));
+	waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
 	waddstr(scr, t);
 	waddstr(scr, " from ");
 	waddstr(scr, json_object_get_string(screen_name));
 	waddstr(scr, "(");
 	waddstr(scr, json_object_get_string(display_name));
 	waddstr(scr, ")\n");
-	wattroff(scr, COLOR_PAIR(2));
+	wattroff(scr, COLOR_PAIR(4));
 	
 	enum json_type type;
 	
@@ -153,13 +156,13 @@ void stream_event_update(struct json_object *jobj_from_string)
 	type = json_object_get_type(reblog);
 	
 	if(type != json_type_null) {
-		wattron(scr, COLOR_PAIR(2));
+		wattron(scr, COLOR_PAIR(3));
 		waddstr(scr, "🔃 Reblog by ");
 		waddstr(scr, json_object_get_string(screen_name));
 		waddstr(scr, "(");
 		waddstr(scr, json_object_get_string(display_name));
 		waddstr(scr, ")\n");
-		wattroff(scr, COLOR_PAIR(2));
+		wattroff(scr, COLOR_PAIR(3));
 		stream_event_update(reblog);
 		return;
 	}
@@ -225,13 +228,30 @@ void stream_event_update(struct json_object *jobj_from_string)
 			struct json_object *url;
 			read_json_fom_path(obj, "url", &url);
 			if(json_object_is_type(url, json_type_string)) {
-				waddstr(scr, "📁");
+				waddstr(scr, "🔗");
 				waddstr(scr, json_object_get_string(url));
 				waddstr(scr, "\n");
 			}
 		}
 	}
+	struct json_object *application_name;
+	read_json_fom_path(jobj_from_string, "application/name", &application_name);
 	
+	type = json_object_get_type(application_name);
+	
+	if(type != json_type_null) {
+		int l = strlen(json_object_get_string(application_name));
+	
+		for(int i = 0; i < term_w - (l + 4); i++) waddstr(scr, " ");
+		
+		wattron(scr, COLOR_PAIR(1));
+		waddstr(scr, "via ");
+		wattroff(scr, COLOR_PAIR(1));
+		wattron(scr, COLOR_PAIR(2));
+		waddstr(scr, json_object_get_string(application_name));
+		//waddstr(scr, "\n");
+		wattroff(scr, COLOR_PAIR(2));
+	}
 	
 	waddstr(scr, "\n");
 	wrefresh(scr);
@@ -242,8 +262,14 @@ void stream_event_update(struct json_object *jobj_from_string)
 	//json_object_put(jobj_from_string);
 }
 
+char **json_recieved = NULL;
+int json_recieved_len = 0;
+
 void streaming_recieved(void)
 {
+	json_recieved = realloc(json_recieved, (json_recieved_len + 1) * sizeof(char *));
+	json_recieved[json_recieved_len] = strdup(streaming_json);
+	
 	if(strncmp(streaming_json, "event", 5) == 0) {
 		char *type = strdup(streaming_json + 7);
 		if(strncmp(type, "update", 6) == 0) stream_event_handler = stream_event_update;
@@ -693,6 +719,8 @@ retry1:
 	
 	init_pair(1, COLOR_GREEN, COLOR_BLACK);
 	init_pair(2, COLOR_CYAN, COLOR_BLACK);
+	init_pair(3, COLOR_YELLOW, COLOR_BLACK);
+	init_pair(4, COLOR_RED, COLOR_BLACK);
 	
 	getmaxyx(term, term_h, term_w);
 	
@@ -743,7 +771,19 @@ retry1:
 	{
 		wchar_t c;
 		wget_wch(pad, &c);
-		if(c == 0x1b && txt.string) {
+		if(c == KEY_RESIZE) {
+			getmaxyx(term, term_h, term_w);
+			attron(COLOR_PAIR(2));
+			for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
+			attroff(COLOR_PAIR(2));
+			refresh();
+			werase(scr);
+			wresize(scr, term_h - 6, term_w);
+			wresize(pad, 5, term_w);
+			do_htl();
+			wrefresh(pad);
+			wrefresh(scr);
+		} else if(c == 0x1b && txt.string) {
 			werase(pad);
 			wchar_t *text = malloc(sizeof(wchar_t) * (txt.stringlen + 1));
 			memcpy(text, txt.string, sizeof(wchar_t) * txt.stringlen);
@@ -760,13 +800,13 @@ retry1:
 		wmove(pad, 0, 0);
 		int cx=-1, cy=-1;
 		for(int i = 0; i < txt.stringlen; i++) {
-			if(i == state.cursor) getyx(pad, cx, cy);
 			wchar_t s[2];
 			char mb[8];
 			s[0] = txt.string[i];
 			s[1] = 0;
 			wcstombs(mb, s, 8);
 			waddstr(pad, mb);
+			if(i == state.cursor-1) getyx(pad, cx, cy);
 		}
 		if(cx>=0&&cy>=0) {
 			wmove(pad, cx, cy);
