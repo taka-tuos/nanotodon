@@ -101,11 +101,11 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	
 	putchar('\a');
 	
-	FILE *fp = fopen("json.log", "a+");
+	//FILE *fp = fopen("json.log", "a+");
 	
-	fputs(json_object_to_json_string(jobj_from_string), fp);
-	fputs("\n\n", fp);
-	fclose(fp);
+	//fputs(json_object_to_json_string(jobj_from_string), fp);
+	//fputs("\n\n", fp);
+	//fclose(fp);
 	
 	char *t = json_object_get_string(notify_type);
 	t[0] = toupper(t[0]);
@@ -145,11 +145,11 @@ void stream_event_update(struct json_object *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
 	read_json_fom_path(jobj_from_string, "reblog", &reblog);
 	
-	FILE *fp = fopen("json.log", "a+");
+	//FILE *fp = fopen("json.log", "a+");
 	
-	fputs(json_object_to_json_string(jobj_from_string), fp);
-	fputs("\n\n", fp);
-	fclose(fp);
+	//fputs(json_object_to_json_string(jobj_from_string), fp);
+	//fputs("\n\n", fp);
+	//fclose(fp);
 	
 	enum json_type type;
 	
@@ -235,22 +235,24 @@ void stream_event_update(struct json_object *jobj_from_string)
 		}
 	}
 	struct json_object *application_name;
-	read_json_fom_path(jobj_from_string, "application/name", &application_name);
+	int exist_appname = read_json_fom_path(jobj_from_string, "application/name", &application_name);
 	
-	type = json_object_get_type(application_name);
-	
-	if(type != json_type_null) {
-		int l = strlen(json_object_get_string(application_name));
-	
-		for(int i = 0; i < term_w - (l + 4); i++) waddstr(scr, " ");
+	if(exist_appname) {
+		type = json_object_get_type(application_name);
 		
-		wattron(scr, COLOR_PAIR(1));
-		waddstr(scr, "via ");
-		wattroff(scr, COLOR_PAIR(1));
-		wattron(scr, COLOR_PAIR(2));
-		waddstr(scr, json_object_get_string(application_name));
-		//waddstr(scr, "\n");
-		wattroff(scr, COLOR_PAIR(2));
+		if(type != json_type_null) {
+			int l = strlen(json_object_get_string(application_name));
+		
+			for(int i = 0; i < term_w - (l + 4); i++) waddstr(scr, " ");
+			
+			wattron(scr, COLOR_PAIR(1));
+			waddstr(scr, "via ");
+			wattroff(scr, COLOR_PAIR(1));
+			wattron(scr, COLOR_PAIR(2));
+			waddstr(scr, json_object_get_string(application_name));
+			//waddstr(scr, "\n");
+			wattroff(scr, COLOR_PAIR(2));
+		}
 	}
 	
 	waddstr(scr, "\n");
@@ -622,9 +624,9 @@ void do_htl()
 			
 			char *p = strdup(json_object_to_json_string(obj));
 			
-			FILE *fp = fopen("rest_json.log","wt");
-			fputs(p, fp);
-			fclose(fp);
+			//FILE *fp = fopen("rest_json.log","wt");
+			//fputs(p, fp);
+			//fclose(fp);
 		}
 	}
 	
