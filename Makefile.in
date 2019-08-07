@@ -1,4 +1,3 @@
-MAKE	= make -r
 GCC		= gcc
 GPP		= g++
 LD		= ld
@@ -20,10 +19,7 @@ $(TARGET) : $(OBJS_TARGET) Makefile Makefile.in
 %.o : %.c Makefile Makefile.in
 	$(GCC) -c $(CFLAGS) -o $*.o $*.c
 	
-%.o : %.cpp Makefile Makefile.in
-	$(GPP) -c $(CFLAGS) -o $*.o $*.cpp
-
 # commands
 
 clean :
-	-$(RM) *.o
+	-$(RM) -f *.o $(TARGET)
