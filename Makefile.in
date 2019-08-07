@@ -22,4 +22,4 @@ $(TARGET) : $(OBJS_TARGET) Makefile Makefile.in
 # commands
 
 clean :
-	-$(RM) *.o
+	-$(RM) -f *.o $(TARGET)
