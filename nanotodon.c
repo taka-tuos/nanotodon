@@ -1,5 +1,6 @@
 #include <curl/curl.h>
 #include <json-c/json.h>
+#include <json-c/json_object.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h> // memmove
@@ -7,6 +8,7 @@
 #include <locale.h> // setlocale
 #include <curses.h>
 #include <ncurses.h>
+#include <pthread.h>
 
 char *streaming_json = NULL;
 
@@ -14,6 +16,8 @@ char *streaming_json = NULL;
 
 void (*streaming_recieved_handler)(void);
 void (*stream_event_handler)(struct json_object *);
+void do_htl(void);
+void stream_event_update(struct json_object *);
 
 WINDOW *scr;
 WINDOW *pad;
@@ -177,7 +181,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 	wattroff(scr, COLOR_PAIR(2));
 	waddstr(scr, "\n");
 	
-	char *src = json_object_get_string(content);
+	const char *src = json_object_get_string(content);
 	
 	/*waddstr(scr, src);
 	waddstr(scr, "\n");*/
@@ -588,7 +592,7 @@ size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	return realsize;
 }
 
-void do_htl()
+void do_htl(void)
 {
 	CURLcode ret;
 	CURL *hnd;
