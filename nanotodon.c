@@ -471,7 +471,7 @@ void do_create_client(char *domain)
 void do_oauth(char *code, char *ck, char *cs)
 {
 	char fields[512];
-	sprintf(fields, "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&scope=read%20write%20follow", ck, cs, code);
+	sprintf(fields, "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&scope=read%%20write%%20follow", ck, cs, code);
 	
 	FILE *f = fopen(".nanotter", "wb");
 	
