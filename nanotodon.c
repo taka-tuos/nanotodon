@@ -125,12 +125,13 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	//fputs("\n\n", fp);
 	//fclose(fp);
 	
-	char *t = json_object_get_string(notify_type);
+	char *t = strdup(json_object_get_string(notify_type));
 	t[0] = toupper(t[0]);
 	
 	wattron(scr, COLOR_PAIR(4));
 	waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
 	waddstr(scr, t);
+	free(t);
 	waddstr(scr, " from ");
 	waddstr(scr, json_object_get_string(screen_name));
 	dname = json_object_get_string(display_name);
