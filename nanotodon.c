@@ -626,7 +626,7 @@ void do_htl(void)
 			
 			stream_event_update(obj);
 			
-			char *p = strdup(json_object_to_json_string(obj));
+			//char *p = strdup(json_object_to_json_string(obj));
 			
 			//FILE *fp = fopen("rest_json.log","wt");
 			//fputs(p, fp);
@@ -656,7 +656,6 @@ int main(int argc, char *argv[])
 		fclose(f2);
 	} else {
 		char domain[256];
-		char key[256];
 		char *ck;
 		char *cs;
 		printf("はじめまして！ようこそnaotodonへ!\n");
