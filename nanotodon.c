@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h> // memmove
+#include <time.h>   // strptime, strptime, timegm, localtime
 #include <ctype.h>  // isspace
 #include <locale.h> // setlocale
 #include <curses.h>
