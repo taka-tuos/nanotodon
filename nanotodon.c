@@ -722,10 +722,12 @@ retry1:
 	
 	start_color();
 	
-	init_pair(1, COLOR_GREEN, COLOR_BLACK);
-	init_pair(2, COLOR_CYAN, COLOR_BLACK);
-	init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-	init_pair(4, COLOR_RED, COLOR_BLACK);
+	use_default_colors();
+
+	init_pair(1, COLOR_GREEN, -1);
+	init_pair(2, COLOR_CYAN, -1);
+	init_pair(3, COLOR_YELLOW, -1);
+	init_pair(4, COLOR_RED, -1);
 	
 	getmaxyx(term, term_h, term_w);
 	
