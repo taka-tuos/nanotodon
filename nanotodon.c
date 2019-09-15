@@ -28,6 +28,19 @@ char domain_string[256];
 int term_w, term_h;
 int pad_x = 0, pad_y = 0;
 
+int ustrwidth(const char *str)
+{
+	int size, width;
+
+	width = 0;
+	while (*str != '\0') {
+		size = (((uint8_t)*str & 0xf0) == 0xe0) ? 3 : 1;
+		width += (size == 1) ? 1 : 2;
+		str += size;
+	}
+	return width;
+}
+
 char *create_uri_string(char *api)
 {
 	char *s = malloc(256);
@@ -97,6 +110,7 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 void stream_event_notify(struct json_object *jobj_from_string)
 {
 	struct json_object *notify_type, *screen_name, *display_name, *status;
+	const char *dname;
 	if(!jobj_from_string) return;
 	read_json_fom_path(jobj_from_string, "type", &notify_type);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
@@ -119,9 +133,11 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	waddstr(scr, t);
 	waddstr(scr, " from ");
 	waddstr(scr, json_object_get_string(screen_name));
-	waddstr(scr, "(");
-	waddstr(scr, json_object_get_string(display_name));
-	waddstr(scr, ")\n");
+	dname = json_object_get_string(display_name);
+	if (dname[0] != '\0') {
+		wprintw(scr, " (%s)", dname);
+	}
+	waddstr(scr, "\n");
 	wattroff(scr, COLOR_PAIR(4));
 	
 	enum json_type type;
@@ -139,15 +155,28 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	wrefresh(pad);
 }
 
+#define DATEBUFLEN	40
+
 void stream_event_update(struct json_object *jobj_from_string)
 {
 	struct json_object *content, *screen_name, *display_name, *reblog;
 	//struct json_object *jobj_from_string = json_tokener_parse(json);
+	const char *dname;
+	struct json_object *created_at;
+	struct tm tm;
+	time_t time;
+	char datebuf[DATEBUFLEN];
+	int x, y, date_w;
 	if(!jobj_from_string) return;
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
 	read_json_fom_path(jobj_from_string, "reblog", &reblog);
+	read_json_fom_path(jobj_from_string, "created_at", &created_at);
+	memset(&tm, 0, sizeof(tm));
+	strptime(json_object_get_string(created_at), "%Y-%m-%dT%H:%M:%S", &tm);
+	time = timegm(&tm);
+	strftime(datebuf, sizeof(datebuf), "%x(%a) %X", localtime(&time));
 	
 	//FILE *fp = fopen("json.log", "a+");
 	
@@ -163,7 +192,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 		wattron(scr, COLOR_PAIR(3));
 		waddstr(scr, "🔃 Reblog by ");
 		waddstr(scr, json_object_get_string(screen_name));
-		waddstr(scr, "(");
+		waddstr(scr, " (");
 		waddstr(scr, json_object_get_string(display_name));
 		waddstr(scr, ")\n");
 		wattroff(scr, COLOR_PAIR(3));
@@ -171,14 +200,26 @@ void stream_event_update(struct json_object *jobj_from_string)
 		return;
 	}
 	
-	wattron(scr, COLOR_PAIR(1));
+	wattron(scr, COLOR_PAIR(1)|A_BOLD);
 	waddstr(scr, json_object_get_string(screen_name));
-	wattroff(scr, COLOR_PAIR(1));
-	wattron(scr, COLOR_PAIR(2));
-	waddstr(scr, "(");
-	waddstr(scr, json_object_get_string(display_name));
-	waddstr(scr, ")");
-	wattroff(scr, COLOR_PAIR(2));
+	wattroff(scr, COLOR_PAIR(1)|A_BOLD);
+	dname = json_object_get_string(display_name);
+	if (dname[0] != '\0') {
+		wattron(scr, COLOR_PAIR(2));
+		wprintw(scr, " (%s)", dname);
+		wattroff(scr, COLOR_PAIR(2));
+	}
+	date_w = ustrwidth(datebuf) + 1;
+	getyx(scr, y, x);
+	if (x < term_w - date_w) {
+		for(int i = 0; i < term_w - x - date_w; i++) waddstr(scr, " ");
+	} else {
+		for(int i = 0; i < x - (term_w - date_w); i++) waddstr(scr, "\b");
+		waddstr(scr, "\b ");
+	}
+	wattron(scr, COLOR_PAIR(5));
+	waddstr(scr, datebuf);
+	wattroff(scr, COLOR_PAIR(5));
 	waddstr(scr, "\n");
 	
 	const char *src = json_object_get_string(content);
@@ -245,16 +286,16 @@ void stream_event_update(struct json_object *jobj_from_string)
 		type = json_object_get_type(application_name);
 		
 		if(type != json_type_null) {
-			int l = strlen(json_object_get_string(application_name));
+			int l = ustrwidth(json_object_get_string(application_name));
 		
-			for(int i = 0; i < term_w - (l + 4); i++) waddstr(scr, " ");
+			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(scr, " ");
 			
 			wattron(scr, COLOR_PAIR(1));
 			waddstr(scr, "via ");
 			wattroff(scr, COLOR_PAIR(1));
 			wattron(scr, COLOR_PAIR(2));
 			waddstr(scr, json_object_get_string(application_name));
-			//waddstr(scr, "\n");
+			waddstr(scr, "\n");
 			wattroff(scr, COLOR_PAIR(2));
 		}
 	}
@@ -728,6 +769,7 @@ retry1:
 	init_pair(2, COLOR_CYAN, -1);
 	init_pair(3, COLOR_YELLOW, -1);
 	init_pair(4, COLOR_RED, -1);
+	init_pair(5, COLOR_BLUE, -1);
 	
 	getmaxyx(term, term_h, term_w);
 	
