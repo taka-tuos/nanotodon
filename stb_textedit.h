@@ -956,6 +956,7 @@ retry:
          break;
 
       case STB_TEXTEDIT_K_BACKSPACE:
+      case STB_TEXTEDIT_K_BACKSPACE_ALT:
       case STB_TEXTEDIT_K_BACKSPACE | STB_TEXTEDIT_K_SHIFT:
          if (STB_TEXT_HAS_SELECTION(state))
             stb_textedit_delete_selection(str, state);
