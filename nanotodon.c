@@ -230,9 +230,16 @@ void stream_event_update(struct json_object *jobj_from_string)
 	waddstr(scr, "\n");*/
 	
 	int ltgt = 0;
+	int pcount = 0;
 	while(*src) {
 		if(*src == '<') ltgt = 1;
 		if(ltgt && strncmp(src, "<br", 3) == 0) waddch(scr, '\n');
+		if(ltgt && strncmp(src, "<p", 2) == 0) {
+			pcount++;
+			if(pcount >= 2) {
+				waddstr(scr, "\n\n");
+			}
+		}
 		if(!ltgt) {
 			if(*src == '&') {
 				if(strncmp(src, "&amp;", 5) == 0) {
