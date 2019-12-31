@@ -33,15 +33,51 @@ int pad_x = 0, pad_y = 0;
 
 int ustrwidth(const char *str)
 {
-	int size, width;
+	int size, width, strwidth;
 
-	width = 0;
+	strwidth = 0;
 	while (*str != '\0') {
-		size = (((uint8_t)*str & 0xf0) == 0xe0) ? 3 : 1;
-		width += (size == 1) ? 1 : 2;
+		uint8_t c;
+		c = (uint8_t)*str;
+		if (c >= 0x00 && c <= 0x7f) {
+			size  = 1;
+			width = 1;
+		} else if (c >= 0xc2 && c <= 0xdf) {
+			size  = 2;
+			width = 2;
+		} else if (c == 0xef) {
+			uint16_t p;
+			p = ((uint8_t)str[1] << 8) | (uint8_t)str[2];
+			size  = 3;
+			if (p >= 0xbda1 && p <= 0xbe9c) {
+				/* Halfwidth CJK punctuation */
+				/* Halfwidth Katakana variants */
+				/* Halfwidth Hangul variants */
+				width = 1;
+			} else if (p >= 0xbfa8 && p <= 0xbfae) {
+				/* Halfwidth symbol variants */
+				width = 1;
+			} else {
+				/* other BMP */
+				width = 2;
+			}
+		} else if ((c & 0xf0) == 0xe0) {
+			/* other BMP */
+			size  = 3;
+			width = 2;
+		} else if ((c & 0xf8) == 0xf0) {
+			/* Emoji etc. */
+			size  = 4;
+			width = 2;
+		} else {
+			/* unexpected */
+			size  = 1;
+			width = 1;
+		}
+		strwidth += width;
 		str += size;
 	}
-	return width;
+	return strwidth;
 }
 
 char *create_uri_string(char *api)
