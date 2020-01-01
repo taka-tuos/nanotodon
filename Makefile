@@ -3,6 +3,6 @@ OBJS_TARGET	= nanotodon.o
 
 CFLAGS = -g
 LDFLAGS = 
-LIBS = -lc -lm -lcurl -ljson-c -lncursesw -lpthread
+LIBS = -lcurl -ljson-c -lncursesw -lpthread -lm 
 
 include Makefile.in
