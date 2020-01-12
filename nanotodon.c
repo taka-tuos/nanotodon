@@ -698,7 +698,7 @@ void do_htl(void)
 
 int main(int argc, char *argv[])
 {
-	nano_init_config(&config);
+	nano_config_init(&config);
     
 	FILE *fp = fopen(config.dot_token, "rb");
 	if(fp) {
@@ -727,7 +727,7 @@ retry1:
 		fclose(f2);
 
 		char dot_ckcs[256];
-		nano_app_token_filename(&config, domain, dot_ckcs, sizeof(dot_ckcs));
+		nano_config_app_token_filename(&config, domain, dot_ckcs, sizeof(dot_ckcs));
 		
 		char json_name[256];
 		strcpy(json_name, dot_ckcs);

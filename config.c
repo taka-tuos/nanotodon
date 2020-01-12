@@ -26,7 +26,7 @@ static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home
 	return 1;
 }
 
-int nano_init_config(struct nanotodon_config *config)
+int nano_config_init(struct nanotodon_config *config)
 {
 	char *homepath = getenv("HOME");
 
@@ -58,7 +58,7 @@ makepath:
 	return 1;
 }
 
-int nano_app_token_filename(struct nanotodon_config *config, const char* domain, char *buf, size_t buf_length)
+int nano_config_app_token_filename(struct nanotodon_config *config, const char* domain, char *buf, size_t buf_length)
 {
 	char app_token_dir[256];
 	snprintf(app_token_dir, sizeof(app_token_dir), "%s/app_token", config->root_dir);
