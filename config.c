@@ -3,6 +3,9 @@
 #include <sys/stat.h>
 #include "config.h"
 
+static int exists_dir(const char* path);
+static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home);
+
 static int exists_dir(const char* path)
 {
 	struct stat st;
