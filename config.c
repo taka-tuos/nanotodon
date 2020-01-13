@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <errno.h>
 #include "config.h"
@@ -41,13 +42,13 @@ static void make_config_dir_or_die(const char* path)
 	case MAKE_CONFIG_DIR_OK:
 		return;
 	case MAKE_CONFIG_DIR_CANT_CREATE:
-		fprintf(stderr, "FATAL: Can't create directory '%s' (errno=%d)\n", path, errno);
+		fprintf(stderr, "FATAL: Can't create directory '%s' (%s)\n", path, strerror(errno));
 		exit(EXIT_FAILURE);
 	case MAKE_CONFIG_DIR_FILE_EXISTS:
 		fprintf(stderr, "FATAL: File already exists '%s'\n", path);
 		exit(EXIT_FAILURE);
 	default:
-		fprintf(stderr, "FATAL: Undefined error (errno=%d)\n", errno);
+		fprintf(stderr, "FATAL: Undefined error (%s)\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
 }
