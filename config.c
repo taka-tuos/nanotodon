@@ -115,7 +115,7 @@ buffer_err:
 
 int nano_config_app_token_filename(struct nanotodon_config *config, const char* domain, char *buf, size_t buf_length)
 {
-	const unsigned int path_length = strlen(config->root_dir) + strlen(APP_TOKEN_DIR) + 1 + strlen(domain);
+	const size_t path_length = strlen(config->root_dir) + strlen(APP_TOKEN_DIR) + 1 + strlen(domain);
 	if (path_length >= buf_length) {
 		// 予測パス長がバッファに収まりきらない場合は、何もしないで予測パス長を返す
 		return path_length;
