@@ -9,6 +9,8 @@
 #define MAKE_CONFIG_DIR_CANT_CREATE 0x01
 #define MAKE_CONFIG_DIR_FILE_EXISTS 0x02
 
+#define APP_TOKEN_DIR "/app_token"
+
 static int make_config_dir(const char* path);
 static void make_config_dir_or_die(const char* path);
 static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home);
@@ -61,7 +63,10 @@ static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home
 		return make_home_result;
 	}
 
-	sprintf(config->root_dir, "%s/nanotodon", xdg_config_home);
+	if (snprintf(config->root_dir, sizeof(config->root_dir), "%s/nanotodon", xdg_config_home) >= sizeof(config->root_dir)) {
+		fprintf(stderr, "FATAL: Can't allocate memory. Too long filename.\n");
+		exit(EXIT_FAILURE);
+	}
 	return make_config_dir(config->root_dir);
 }
 
@@ -78,28 +83,49 @@ int nano_config_init(struct nanotodon_config *config)
 
 	// $HOME/.config
 	char default_xdg_config_home[256];
-	sprintf(default_xdg_config_home, "%s/.config", homepath);
+	if (snprintf(default_xdg_config_home, sizeof(default_xdg_config_home), "%s/.config", homepath) >= sizeof(default_xdg_config_home)) {
+		goto buffer_err;
+	}
 	if (init_xdg(config, default_xdg_config_home) == MAKE_CONFIG_DIR_OK) {
 		goto makepath;
 	}
 
 	// $HOME/.nanotodon
-	sprintf(config->root_dir, "%s/.nanotodon", homepath);
+	if (snprintf(config->root_dir, sizeof(config->root_dir), "%s/.nanotodon", homepath) >= sizeof(config->root_dir)) {
+		goto buffer_err;
+	}
 	make_config_dir_or_die(config->root_dir);
 
 makepath:
 
-	sprintf(config->dot_token, "%s/token", config->root_dir);
-	sprintf(config->dot_domain, "%s/domain", config->root_dir);
+	if (snprintf(config->dot_token, sizeof(config->dot_token), "%s/token", config->root_dir) >= sizeof(config->dot_token)) {
+		goto buffer_err;
+	}
+	if (snprintf(config->dot_domain, sizeof(config->dot_domain), "%s/domain", config->root_dir) >= sizeof(config->dot_domain)) {
+		goto buffer_err;
+	}
 
 	return 1;
+
+buffer_err:
+
+	fprintf(stderr, "FATAL: Can't allocate memory. Too long filename.\n");
+	exit(EXIT_FAILURE);
 }
 
 int nano_config_app_token_filename(struct nanotodon_config *config, const char* domain, char *buf, size_t buf_length)
 {
-	char app_token_dir[256];
-	snprintf(app_token_dir, sizeof(app_token_dir), "%s/app_token", config->root_dir);
-	make_config_dir_or_die(app_token_dir);
+	const unsigned int path_length = strlen(config->root_dir) + strlen(APP_TOKEN_DIR) + 1 + strlen(domain);
+	if (path_length >= buf_length) {
+		// 予測パス長がバッファに収まりきらない場合は、何もしないで予測パス長を返す
+		return path_length;
+	}
 
-	return snprintf(buf, buf_length, "%s/%s", app_token_dir, domain);
+	strcpy(buf, config->root_dir);
+	strcat(buf, APP_TOKEN_DIR);
+	make_config_dir_or_die(buf);
+
+	strcat(buf, "/");
+	strcat(buf, domain);
+	return path_length;
 }

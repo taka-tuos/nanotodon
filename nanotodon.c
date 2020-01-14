@@ -727,7 +727,10 @@ retry1:
 		fclose(f2);
 
 		char dot_ckcs[256];
-		nano_config_app_token_filename(&config, domain, dot_ckcs, sizeof(dot_ckcs));
+		if (nano_config_app_token_filename(&config, domain, dot_ckcs, sizeof(dot_ckcs)) >= sizeof(dot_ckcs)) {
+			fprintf(stderr, "FATAL: Can't allocate memory. Too long filename.\n");
+			exit(EXIT_FAILURE);
+		}
 		
 		char json_name[256];
 		strcpy(json_name, dot_ckcs);
