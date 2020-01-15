@@ -13,7 +13,10 @@
 
 static int make_config_dir(const char* path);
 static void make_config_dir_or_die(const char* path);
+
+#ifdef SUPPORT_XDG_BASE_DIR
 static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home);
+#endif
 
 static int make_config_dir(const char* path)
 {
@@ -55,6 +58,7 @@ static void make_config_dir_or_die(const char* path)
 	}
 }
 
+#ifdef SUPPORT_XDG_BASE_DIR
 static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home)
 {
 	// make xdg config home
@@ -69,12 +73,13 @@ static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home
 	}
 	return make_config_dir(config->root_dir);
 }
+#endif
 
 int nano_config_init(struct nanotodon_config *config)
 {
 	char *homepath = getenv("HOME");
 
-	// TODO: マクロでXDG Base Directory使うか切り替えてもよさそう
+#ifdef SUPPORT_XDG_BASE_DIR
 	// XDG_CONFIG_HOME
 	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
 	if (xdg_config_home != NULL && init_xdg(config, xdg_config_home) == MAKE_CONFIG_DIR_OK) {
@@ -89,6 +94,7 @@ int nano_config_init(struct nanotodon_config *config)
 	if (init_xdg(config, default_xdg_config_home) == MAKE_CONFIG_DIR_OK) {
 		goto makepath;
 	}
+#endif
 
 	// $HOME/.nanotodon
 	if (snprintf(config->root_dir, sizeof(config->root_dir), "%s/.nanotodon", homepath) >= sizeof(config->root_dir)) {
