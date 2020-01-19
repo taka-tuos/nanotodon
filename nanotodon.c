@@ -10,6 +10,7 @@
 #include <curses.h>
 #include <ncurses.h>
 #include <pthread.h>
+#include "config.h"
 
 char *streaming_json = NULL;
 
@@ -26,7 +27,7 @@ WINDOW *pad;
 char access_token[256];
 char domain_string[256];
 
-char dot_domain[256], dot_token[256], dot_ckcs[256];
+struct nanotodon_config config;
 
 int term_w, term_h;
 int pad_x = 0, pad_y = 0;
@@ -471,7 +472,7 @@ int insert_chars(STB_TEXTEDIT_STRING *str, int pos, STB_TEXTEDIT_CHARTYPE *newte
 #define STB_TEXTEDIT_IMPLEMENTATION
 #include "stb_textedit.h"
 
-void do_create_client(char *domain)
+void do_create_client(char *domain, char *dot_ckcs)
 {
 	CURLcode ret;
 	CURL *hnd;
@@ -526,7 +527,7 @@ void do_oauth(char *code, char *ck, char *cs)
 	char fields[512];
 	sprintf(fields, "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&scope=read%%20write%%20follow", ck, cs, code);
 	
-	FILE *f = fopen(dot_token, "wb");
+	FILE *f = fopen(config.dot_token, "wb");
 	
 	CURLcode ret;
 	CURL *hnd;
@@ -697,19 +698,16 @@ void do_htl(void)
 
 int main(int argc, char *argv[])
 {
-	char *homepath = getenv("HOME");
-	
-	sprintf(dot_token, "%s/.nanotodon_token", homepath);
-	sprintf(dot_domain, "%s/.nanotodon_domain", homepath);
-	
-	FILE *fp = fopen(dot_token, "rb");
+	nano_config_init(&config);
+    
+	FILE *fp = fopen(config.dot_token, "rb");
 	if(fp) {
 		fclose(fp);
 		struct json_object *token;
-		struct json_object *jobj_from_file = json_object_from_file(dot_token);
+		struct json_object *jobj_from_file = json_object_from_file(config.dot_token);
 		read_json_fom_path(jobj_from_file, "access_token", &token);
 		sprintf(access_token, "Authorization: Bearer %s", json_object_get_string(token));
-		FILE *f2 = fopen(dot_domain, "rb");
+		FILE *f2 = fopen(config.dot_domain, "rb");
 		fscanf(f2, "%255s", domain_string);
 		fclose(f2);
 	} else {
@@ -724,18 +722,22 @@ retry1:
 		scanf("%255s", domain);
 		printf("\n");
 		
-		FILE *f2 = fopen(dot_domain, "wb");
+		FILE *f2 = fopen(config.dot_domain, "wb");
 		fprintf(f2, "%s", domain);
 		fclose(f2);
-		
-		sprintf(dot_ckcs, "%s/.nanotodon_%s.ckcs", homepath, domain);
+
+		char dot_ckcs[256];
+		if (nano_config_app_token_filename(&config, domain, dot_ckcs, sizeof(dot_ckcs)) >= sizeof(dot_ckcs)) {
+			fprintf(stderr, "FATAL: Can't allocate memory. Too long filename.\n");
+			exit(EXIT_FAILURE);
+		}
 		
 		char json_name[256];
 		strcpy(json_name, dot_ckcs);
 		strcpy(domain_string, domain);
 		FILE *ckcs = fopen(json_name, "rb");
 		if(!ckcs) {
-			do_create_client(domain);
+			do_create_client(domain, dot_ckcs);
 		} else {
 			fclose(ckcs);
 		}
@@ -747,7 +749,7 @@ retry1:
 		if(!r1 || !r2) {
 			printf("何かがおかしいみたいだよ。\nもう一度やり直すね。");
 			remove(json_name);
-			remove(dot_domain);
+			remove(config.dot_domain);
 			goto retry1;
 		}
 		ck = strdup(json_object_get_string(cko));
@@ -763,13 +765,13 @@ retry1:
 		printf("\n");
 		do_oauth(code, ck, cs);
 		struct json_object *token;
-		jobj_from_file = json_object_from_file(dot_token);
+		jobj_from_file = json_object_from_file(config.dot_token);
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
 		if(!r3) {
 			printf("何かがおかしいみたいだよ。\n入力したコードはあっているかな？\nもう一度やり直すね。");
 			remove(json_name);
-			remove(dot_domain);
-			remove(dot_token);
+			remove(config.dot_domain);
+			remove(config.dot_token);
 			goto retry1;
 		}
 		sprintf(access_token, "Authorization: Bearer %s", json_object_get_string(token));
