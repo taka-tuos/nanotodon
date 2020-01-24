@@ -31,6 +31,7 @@ struct nanotodon_config config;
 
 int term_w, term_h;
 int pad_x = 0, pad_y = 0;
+int monoflag = 0;
 
 int ustrwidth(const char *str)
 {
@@ -168,7 +169,7 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	char *t = strdup(json_object_get_string(notify_type));
 	t[0] = toupper(t[0]);
 	
-	wattron(scr, COLOR_PAIR(4));
+	if(!monoflag) wattron(scr, COLOR_PAIR(4));
 	waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
 	waddstr(scr, t);
 	free(t);
@@ -179,7 +180,7 @@ void stream_event_notify(struct json_object *jobj_from_string)
 		wprintw(scr, " (%s)", dname);
 	}
 	waddstr(scr, "\n");
-	wattroff(scr, COLOR_PAIR(4));
+	if(!monoflag) wattroff(scr, COLOR_PAIR(4));
 	
 	enum json_type type;
 	
@@ -230,25 +231,27 @@ void stream_event_update(struct json_object *jobj_from_string)
 	type = json_object_get_type(reblog);
 	
 	if(type != json_type_null) {
-		wattron(scr, COLOR_PAIR(3));
+		if(!monoflag) wattron(scr, COLOR_PAIR(3));
 		waddstr(scr, "🔃 Reblog by ");
 		waddstr(scr, json_object_get_string(screen_name));
 		waddstr(scr, " (");
 		waddstr(scr, json_object_get_string(display_name));
 		waddstr(scr, ")\n");
-		wattroff(scr, COLOR_PAIR(3));
+		if(!monoflag) wattroff(scr, COLOR_PAIR(3));
 		stream_event_update(reblog);
 		return;
 	}
 	
-	wattron(scr, COLOR_PAIR(1)|A_BOLD);
+	if(!monoflag) wattron(scr, COLOR_PAIR(1)|A_BOLD);
+	else wattron(scr, A_BOLD);
 	waddstr(scr, json_object_get_string(screen_name));
-	wattroff(scr, COLOR_PAIR(1)|A_BOLD);
+	if(!monoflag) wattroff(scr, COLOR_PAIR(1)|A_BOLD);
+	else wattroff(scr, A_BOLD);
 	dname = json_object_get_string(display_name);
 	if (dname[0] != '\0') {
-		wattron(scr, COLOR_PAIR(2));
+		if(!monoflag) wattron(scr, COLOR_PAIR(2));
 		wprintw(scr, " (%s)", dname);
-		wattroff(scr, COLOR_PAIR(2));
+		if(!monoflag) wattroff(scr, COLOR_PAIR(2));
 	}
 	date_w = ustrwidth(datebuf) + 1;
 	getyx(scr, y, x);
@@ -258,9 +261,9 @@ void stream_event_update(struct json_object *jobj_from_string)
 		for(int i = 0; i < x - (term_w - date_w); i++) waddstr(scr, "\b");
 		waddstr(scr, "\b ");
 	}
-	wattron(scr, COLOR_PAIR(5));
+	if(!monoflag) wattron(scr, COLOR_PAIR(5));
 	waddstr(scr, datebuf);
-	wattroff(scr, COLOR_PAIR(5));
+	if(!monoflag) wattroff(scr, COLOR_PAIR(5));
 	waddstr(scr, "\n");
 	
 	const char *src = json_object_get_string(content);
@@ -338,13 +341,13 @@ void stream_event_update(struct json_object *jobj_from_string)
 		
 			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(scr, " ");
 			
-			wattron(scr, COLOR_PAIR(1));
+			if(!monoflag) wattron(scr, COLOR_PAIR(1));
 			waddstr(scr, "via ");
-			wattroff(scr, COLOR_PAIR(1));
-			wattron(scr, COLOR_PAIR(2));
+			if(!monoflag) wattroff(scr, COLOR_PAIR(1));
+			if(!monoflag) wattron(scr, COLOR_PAIR(2));
 			waddstr(scr, json_object_get_string(application_name));
 			waddstr(scr, "\n");
-			wattroff(scr, COLOR_PAIR(2));
+			if(!monoflag) wattroff(scr, COLOR_PAIR(2));
 		}
 	}
 	
@@ -736,6 +739,15 @@ int main(int argc, char *argv[])
 {
 	nano_config_init(&config);
     
+	for(int i=1;i<argc;i++) {
+		if(!strcmp(argv[i],"-mono")) {
+			monoflag = 1;
+			printf("Monochrome mode.\n");
+		} else {
+			fprintf(stderr,"Unknown Option %s\n", argv[i]);
+		}
+	}
+	
 	FILE *fp = fopen(config.dot_token, "rb");
 	if(fp) {
 		fclose(fp);
@@ -853,22 +865,22 @@ retry1:
 	keypad(pad, TRUE);
 	noecho();
 	
-	attron(COLOR_PAIR(2));
+	if(!monoflag) attron(COLOR_PAIR(2));
 	for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
-	attroff(COLOR_PAIR(2));
+	if(!monoflag) attroff(COLOR_PAIR(2));
 	refresh();
 	
 	/*mvaddch(0, term_w/2, '[');
-	attron(COLOR_PAIR(1));
+	if(!monoflag) attron(COLOR_PAIR(1));
 	addstr("toot欄(escで投稿)");
-	attroff(COLOR_PAIR(1));
+	if(!monoflag) attroff(COLOR_PAIR(1));
 	mvaddch(0, term_w-1, ']');
 	mvaddch(0, 0, '[');
-	attron(COLOR_PAIR(2));
+	if(!monoflag) attron(COLOR_PAIR(2));
 	addstr("Timeline(");
 	addstr(URI);
 	addstr(")");
-	attroff(COLOR_PAIR(2));
+	if(!monoflag) attroff(COLOR_PAIR(2));
 	mvaddch(0, term_w/2-1, ']');
 	refresh();
 	wmove(pad, 0, 0);*/
@@ -879,9 +891,9 @@ retry1:
 		wget_wch(pad, &c);
 		if(c == KEY_RESIZE) {
 			getmaxyx(term, term_h, term_w);
-			attron(COLOR_PAIR(2));
+			if(!monoflag) attron(COLOR_PAIR(2));
 			for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
-			attroff(COLOR_PAIR(2));
+			if(!monoflag) attroff(COLOR_PAIR(2));
 			refresh();
 			werase(scr);
 			wresize(scr, term_h - 6, term_w);
