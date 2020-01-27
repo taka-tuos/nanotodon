@@ -82,6 +82,19 @@ int ustrwidth(const char *str)
 	return strwidth;
 }
 
+void curl_fatal(CURLcode ret, const char *errbuf)
+{
+	size_t len = strlen(errbuf);
+	endwin();
+	fprintf(stderr, "\n");
+	if(len>0) {
+		fprintf(stderr, "%s%s", errbuf, errbuf[len-1]!='\n' ? "\n" : "");
+	}else{
+		fprintf(stderr, "%s\n", curl_easy_strerror(ret));
+	}
+	exit(EXIT_FAILURE);
+} 
+
 char *create_uri_string(char *api)
 {
 	char *s = malloc(256);
@@ -403,9 +416,11 @@ void *stream_thread_func(void *param)
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_slist *slist1;
+	char errbuf[CURL_ERROR_SIZE];
 
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
+	memset(errbuf, 0, sizeof errbuf);
 
 	char *uri = create_uri_string(URI);
 
@@ -420,11 +435,13 @@ void *stream_thread_func(void *param)
 	curl_easy_setopt(hnd, CURLOPT_TIMEOUT, 0);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, (void *)&streaming_json);
 	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, streaming_callback);
+	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 	
 	streaming_recieved_handler = streaming_recieved;
 	stream_event_handler = NULL;
 	
 	ret = curl_easy_perform(hnd);
+	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
@@ -517,6 +534,7 @@ void do_create_client(char *domain, char *dot_ckcs)
 	CURL *hnd;
 	struct curl_httppost *post1;
 	struct curl_httppost *postend;
+	char errbuf[CURL_ERROR_SIZE];
 	
 	char json_name[256], *uri;
 	
@@ -528,6 +546,7 @@ void do_create_client(char *domain, char *dot_ckcs)
 
 	post1 = NULL;
 	postend = NULL;
+	memset(errbuf, 0, sizeof errbuf);
 	curl_formadd(&post1, &postend,
 				CURLFORM_COPYNAME, "client_name",
 				CURLFORM_COPYCONTENTS, "nanotodon",
@@ -550,8 +569,10 @@ void do_create_client(char *domain, char *dot_ckcs)
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, f);
+	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 	
 	ret = curl_easy_perform(hnd);
+	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 	
 	fclose(f);
 
@@ -572,9 +593,11 @@ void do_oauth(char *code, char *ck, char *cs)
 	CURL *hnd;
 	struct curl_httppost *post1;
 	struct curl_httppost *postend;
+	char errbuf[CURL_ERROR_SIZE];
 
 	post1 = NULL;
 	postend = NULL;
+	memset(errbuf, 0, sizeof errbuf);
 	curl_formadd(&post1, &postend,
 				CURLFORM_COPYNAME, "grant_type",
 				CURLFORM_COPYCONTENTS, "authorization_code",
@@ -605,8 +628,10 @@ void do_oauth(char *code, char *ck, char *cs)
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, f);
+	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 	
 	ret = curl_easy_perform(hnd);
+	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 	
 	fclose(f);
 
@@ -623,6 +648,7 @@ void do_toot(char *s)
 	struct curl_httppost *post1;
 	struct curl_httppost *postend;
 	struct curl_slist *slist1;
+	char errbuf[CURL_ERROR_SIZE];
 	
 	FILE *f = fopen("/dev/null", "wb");
 	
@@ -630,6 +656,7 @@ void do_toot(char *s)
 
 	post1 = NULL;
 	postend = NULL;
+	memset(errbuf, 0, sizeof errbuf);
 	curl_formadd(&post1, &postend,
 				CURLFORM_COPYNAME, "status",
 				CURLFORM_COPYCONTENTS, s,
@@ -650,8 +677,10 @@ void do_toot(char *s)
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, f);
+	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 
 	ret = curl_easy_perform(hnd);
+	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 
 	fclose(f);
 	
@@ -690,9 +719,11 @@ void do_htl(void)
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_slist *slist1;
+	char errbuf[CURL_ERROR_SIZE];
 
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
+	memset(errbuf, 0, sizeof errbuf);
 	
 	char *json = NULL;
 
@@ -705,8 +736,10 @@ void do_htl(void)
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, (void *)&json);
 	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, htl_callback);
+	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 	
 	ret = curl_easy_perform(hnd);
+	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 	
 	struct json_object *jobj_from_string = json_tokener_parse(json);
 	enum json_type type;
