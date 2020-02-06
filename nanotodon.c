@@ -11,6 +11,7 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include "config.h"
+#include "messages.h"
 
 char *streaming_json = NULL;
 
@@ -781,6 +782,11 @@ int main(int argc, char *argv[])
 		}
 	}
 	
+	char *env_lang = getenv("LANG");
+	int msg_lang = 0;
+	
+	if(env_lang && !strcmp(env_lang,"ja_JP.UTF-8")) msg_lang = 1;
+	
 	FILE *fp = fopen(config.dot_token, "rb");
 	if(fp) {
 		fclose(fp);
@@ -795,10 +801,10 @@ int main(int argc, char *argv[])
 		char domain[256];
 		char *ck;
 		char *cs;
-		printf("はじめまして！ようこそnaotodonへ!\n");
-		printf("最初に、");
+		printf(nano_msg_list[msg_lang][NANO_MSG_WELCOME]);
+		printf(nano_msg_list[msg_lang][NANO_MSG_WEL_FIRST]);
 retry1:
-		printf("あなたのいるインスタンスを教えてね。\n(https://[ここを入れてね]/)\n");
+		printf(nano_msg_list[msg_lang][NANO_MSG_INPUT_DOMAIN]);
 		printf(">");
 		scanf("%255s", domain);
 		printf("\n");
@@ -828,7 +834,7 @@ retry1:
 		int r1 = read_json_fom_path(jobj_from_file, "client_id", &cko);
 		int r2 = read_json_fom_path(jobj_from_file, "client_secret", &cso);
 		if(!r1 || !r2) {
-			printf("何かがおかしいみたいだよ。\nもう一度やり直すね。");
+			printf(nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_DOMAIN]);
 			remove(json_name);
 			remove(config.dot_domain);
 			goto retry1;
@@ -838,8 +844,8 @@ retry1:
 		
 		char code[256];
 		
-		printf("次に、アプリケーションの認証をするよ。\n");
-		printf("下に表示されるURLにアクセスして承認をしたら表示されるコードを入力してね。\n");
+		printf(nano_msg_list[msg_lang][NANO_MSG_AUTHCATION]);
+		printf(nano_msg_list[msg_lang][NANO_MSG_OAUTH_URL]);
 		printf("https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
 		printf(">");
 		scanf("%255s", code);
@@ -849,14 +855,14 @@ retry1:
 		jobj_from_file = json_object_from_file(config.dot_token);
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
 		if(!r3) {
-			printf("何かがおかしいみたいだよ。\n入力したコードはあっているかな？\nもう一度やり直すね。");
+			printf(nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_OAUTH]);
 			remove(json_name);
 			remove(config.dot_domain);
 			remove(config.dot_token);
 			goto retry1;
 		}
 		sprintf(access_token, "Authorization: Bearer %s", json_object_get_string(token));
-		printf("これでおしまい!\nnanotodonライフを楽しんでね!\n");
+		printf(nano_msg_list[msg_lang][NANO_MSG_FINISH]);
 	}
 	
 	setlocale(LC_ALL, "");
