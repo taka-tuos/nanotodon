@@ -41,12 +41,19 @@ void stream_event_update(struct json_object *);
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
 void stream_event_notify(struct json_object *);
 
+// タイムラインWindow
 WINDOW *scr;
+
+// 投稿欄Window
 WINDOW *pad;
 
+// アクセストークン文字列
 char access_token[256];
+
+// ドメイン文字列
 char domain_string[256];
 
+// コンフィグファイルパス構造体
 struct nanotodon_config config;
 
 int term_w, term_h;
