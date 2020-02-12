@@ -20,3 +20,4 @@ TUI/C99 Mastodon Client
 - NetBSD/x68k + mlterm
 - NetBSD/sun3 + mlterm
 - ArchLinux + xfce terminal
+- WSL1 + mintty(wsl-terminal)
