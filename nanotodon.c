@@ -222,7 +222,7 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	t[0] = toupper(t[0]);
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
-	if(!monoflag) wattron(scr, COLOR_PAIR(4));
+	wattron(scr, COLOR_PAIR(4));
 	waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
 	waddstr(scr, t);
 	free(t);
@@ -236,7 +236,7 @@ void stream_event_notify(struct json_object *jobj_from_string)
 		wprintw(scr, " (%s)", dname);
 	}
 	waddstr(scr, "\n");
-	if(!monoflag) wattroff(scr, COLOR_PAIR(4));
+	wattroff(scr, COLOR_PAIR(4));
 	
 	enum json_type type;
 	
@@ -289,31 +289,29 @@ void stream_event_update(struct json_object *jobj_from_string)
 	
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != json_type_null) {
-		if(!monoflag) wattron(scr, COLOR_PAIR(3));
+		wattron(scr, COLOR_PAIR(3));
 		waddstr(scr, "🔃 Reblog by ");
 		waddstr(scr, json_object_get_string(screen_name));
 		waddstr(scr, " (");
 		waddstr(scr, json_object_get_string(display_name));
 		waddstr(scr, ")\n");
-		if(!monoflag) wattroff(scr, COLOR_PAIR(3));
+		wattroff(scr, COLOR_PAIR(3));
 		stream_event_update(reblog);
 		return;
 	}
 	
 	// 誰からか[ screen_name(display_name) ]を表示
-	if(!monoflag) wattron(scr, COLOR_PAIR(1)|A_BOLD);
-	else wattron(scr, A_BOLD);
+	wattron(scr, COLOR_PAIR(1)|A_BOLD);
 	waddstr(scr, json_object_get_string(screen_name));
-	if(!monoflag) wattroff(scr, COLOR_PAIR(1)|A_BOLD);
-	else wattroff(scr, A_BOLD);
+	wattroff(scr, COLOR_PAIR(1)|A_BOLD);
 	
 	dname = json_object_get_string(display_name);
 	
 	// dname(表示名)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
-		if(!monoflag) wattron(scr, COLOR_PAIR(2));
+		wattron(scr, COLOR_PAIR(2));
 		wprintw(scr, " (%s)", dname);
-		if(!monoflag) wattroff(scr, COLOR_PAIR(2));
+		wattroff(scr, COLOR_PAIR(2));
 	}
 	
 	// 日付表示
@@ -325,9 +323,9 @@ void stream_event_update(struct json_object *jobj_from_string)
 		for(int i = 0; i < x - (term_w - date_w); i++) waddstr(scr, "\b");
 		waddstr(scr, "\b ");
 	}
-	if(!monoflag) wattron(scr, COLOR_PAIR(5));
+	wattron(scr, COLOR_PAIR(5));
 	waddstr(scr, datebuf);
-	if(!monoflag) wattroff(scr, COLOR_PAIR(5));
+	wattroff(scr, COLOR_PAIR(5));
 	waddstr(scr, "\n");
 	
 	const char *src = json_object_get_string(content);
@@ -417,13 +415,13 @@ void stream_event_update(struct json_object *jobj_from_string)
 			// 右寄せにするために空白を並べる
 			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(scr, " ");
 			
-			if(!monoflag) wattron(scr, COLOR_PAIR(1));
+			wattron(scr, COLOR_PAIR(1));
 			waddstr(scr, "via ");
-			if(!monoflag) wattroff(scr, COLOR_PAIR(1));
-			if(!monoflag) wattron(scr, COLOR_PAIR(2));
+			wattroff(scr, COLOR_PAIR(1));
+			wattron(scr, COLOR_PAIR(2));
 			waddstr(scr, json_object_get_string(application_name));
 			waddstr(scr, "\n");
-			if(!monoflag) wattroff(scr, COLOR_PAIR(2));
+			wattroff(scr, COLOR_PAIR(2));
 		}
 	}
 	
@@ -974,11 +972,19 @@ retry1:
 	
 	use_default_colors();
 
-	init_pair(1, COLOR_GREEN, -1);
-	init_pair(2, COLOR_CYAN, -1);
-	init_pair(3, COLOR_YELLOW, -1);
-	init_pair(4, COLOR_RED, -1);
-	init_pair(5, COLOR_BLUE, -1);
+	if(!monoflag) {
+		init_pair(1, COLOR_GREEN, -1);
+		init_pair(2, COLOR_CYAN, -1);
+		init_pair(3, COLOR_YELLOW, -1);
+		init_pair(4, COLOR_RED, -1);
+		init_pair(5, COLOR_BLUE, -1);
+	} else {
+		init_pair(1, -1, -1);
+		init_pair(2, -1, -1);
+		init_pair(3, -1, -1);
+		init_pair(4, -1, -1);
+		init_pair(5, -1, -1);
+	}
 	
 	getmaxyx(term, term_h, term_w);
 	
@@ -1009,22 +1015,22 @@ retry1:
 	noecho();
 	
 	// 投稿欄との境目の線
-	if(!monoflag) attron(COLOR_PAIR(2));
+	attron(COLOR_PAIR(2));
 	for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
-	if(!monoflag) attroff(COLOR_PAIR(2));
+	attroff(COLOR_PAIR(2));
 	refresh();
 	
 	/*mvaddch(0, term_w/2, '[');
-	if(!monoflag) attron(COLOR_PAIR(1));
+	attron(COLOR_PAIR(1));
 	addstr("toot欄(escで投稿)");
-	if(!monoflag) attroff(COLOR_PAIR(1));
+	attroff(COLOR_PAIR(1));
 	mvaddch(0, term_w-1, ']');
 	mvaddch(0, 0, '[');
-	if(!monoflag) attron(COLOR_PAIR(2));
+	attron(COLOR_PAIR(2));
 	addstr("Timeline(");
 	addstr(URI);
 	addstr(")");
-	if(!monoflag) attroff(COLOR_PAIR(2));
+	attroff(COLOR_PAIR(2));
 	mvaddch(0, term_w/2-1, ']');
 	refresh();
 	wmove(pad, 0, 0);*/
@@ -1038,9 +1044,9 @@ retry1:
 			getmaxyx(term, term_h, term_w);
 			
 			// 境目の線再描画
-			if(!monoflag) attron(COLOR_PAIR(2));
+			attron(COLOR_PAIR(2));
 			for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
-			if(!monoflag) attroff(COLOR_PAIR(2));
+			attroff(COLOR_PAIR(2));
 			refresh();
 			
 			// Windowリサイズ
