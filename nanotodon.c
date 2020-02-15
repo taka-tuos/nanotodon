@@ -843,6 +843,7 @@ void do_htl(void)
 			
 			//FILE *fp = fopen("rest_json.log","wt");
 			//fputs(p, fp);
+			//free(p);
 			//fclose(fp);
 		}
 	}
@@ -953,7 +954,9 @@ retry1:
 		
 		// 承認コードで認証
 		do_oauth(code, ck, cs);
-		
+		free(ck);
+		free(cs);
+
 		// トークンファイルを読む
 		struct json_object *token;
 		jobj_from_file = json_object_from_file(config.dot_token);
@@ -1075,6 +1078,7 @@ retry1:
 			char status[1024];
 			wcstombs(status, text, 1024);
 			do_toot(status);
+			free(text);
 			txt.string = 0;
 			txt.stringlen = 0;
 		} else {
