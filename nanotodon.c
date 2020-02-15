@@ -492,13 +492,13 @@ void *stream_thread_func(void *param)
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_slist *slist1;
-	char errbuf[CURL_ERROR_SIZE];
+	char errbuf[CURL_ERROR_SIZE], *uri;
 
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
 
-	char *uri = create_uri_string(URI);
+	uri = create_uri_string(URI);
 
 	hnd = curl_easy_init();
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
@@ -521,6 +521,7 @@ void *stream_thread_func(void *param)
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri);
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
 	
@@ -660,6 +661,7 @@ void do_create_client(char *domain, char *dot_ckcs)
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri);
 	curl_formfree(post1);
 	post1 = NULL;
 }
@@ -677,7 +679,7 @@ void do_oauth(char *code, char *ck, char *cs)
 	CURL *hnd;
 	struct curl_httppost *post1;
 	struct curl_httppost *postend;
-	char errbuf[CURL_ERROR_SIZE];
+	char errbuf[CURL_ERROR_SIZE], *uri;
 
 	post1 = NULL;
 	postend = NULL;
@@ -703,8 +705,10 @@ void do_oauth(char *code, char *ck, char *cs)
 				CURLFORM_COPYCONTENTS, code,
 				CURLFORM_END);
 
+	uri = create_uri_string("oauth/token");
+
 	hnd = curl_easy_init();
-	curl_easy_setopt(hnd, CURLOPT_URL, create_uri_string("oauth/token"));
+	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
 	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
@@ -721,6 +725,7 @@ void do_oauth(char *code, char *ck, char *cs)
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri);
 	curl_formfree(post1);
 	post1 = NULL;
 }
@@ -733,11 +738,11 @@ void do_toot(char *s)
 	struct curl_httppost *post1;
 	struct curl_httppost *postend;
 	struct curl_slist *slist1;
-	char errbuf[CURL_ERROR_SIZE];
+	char errbuf[CURL_ERROR_SIZE], *uri;
 	
 	FILE *f = fopen("/dev/null", "wb");
 	
-	char *uri = create_uri_string("api/v1/statuses");
+	uri = create_uri_string("api/v1/statuses");
 
 	post1 = NULL;
 	postend = NULL;
@@ -771,6 +776,7 @@ void do_toot(char *s)
 	
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri);
 	curl_formfree(post1);
 	post1 = NULL;
 	curl_slist_free_all(slist1);
@@ -806,16 +812,18 @@ void do_htl(void)
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_slist *slist1;
-	char errbuf[CURL_ERROR_SIZE];
+	char errbuf[CURL_ERROR_SIZE], *uri;
 
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
 	
+	uri = create_uri_string("api/v1/timelines/home");
+
 	char *json = NULL;
 
 	hnd = curl_easy_init();
-	curl_easy_setopt(hnd, CURLOPT_URL, create_uri_string("api/v1/timelines/home"));
+	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
 	curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
@@ -851,6 +859,7 @@ void do_htl(void)
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri);
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
 }
