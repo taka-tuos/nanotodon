@@ -267,7 +267,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 {
 	struct json_object *content, *screen_name, *display_name, *reblog;
 	//struct json_object *jobj_from_string = json_tokener_parse(json);
-	const char *dname;
+	const char *sname, *dname;
 	struct json_object *created_at;
 	struct tm tm;
 	time_t time;
@@ -293,15 +293,17 @@ void stream_event_update(struct json_object *jobj_from_string)
 	enum json_type type;
 	
 	type = json_object_get_type(reblog);
+	sname = json_object_get_string(screen_name);
+	dname = json_object_get_string(display_name);
 	
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != json_type_null) {
 		wattron(scr, COLOR_PAIR(3));
 		waddstr(scr, "🔃 Reblog by ");
-		waddstr(scr, json_object_get_string(screen_name));
-		waddstr(scr, " (");
-		waddstr(scr, json_object_get_string(display_name));
-		waddstr(scr, ")\n");
+		waddstr(scr, sname);
+		// dname(表示名)が空の場合は括弧を表示しない
+		if (dname[0] != '\0') wprintw(scr, " (%s)", dname);
+		waddstr(scr, "\n");
 		wattroff(scr, COLOR_PAIR(3));
 		stream_event_update(reblog);
 		return;
@@ -309,10 +311,8 @@ void stream_event_update(struct json_object *jobj_from_string)
 	
 	// 誰からか[ screen_name(display_name) ]を表示
 	wattron(scr, COLOR_PAIR(1)|A_BOLD);
-	waddstr(scr, json_object_get_string(screen_name));
+	waddstr(scr, sname);
 	wattroff(scr, COLOR_PAIR(1)|A_BOLD);
-	
-	dname = json_object_get_string(display_name);
 	
 	// dname(表示名)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
