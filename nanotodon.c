@@ -17,6 +17,8 @@ char *streaming_json = NULL;
 
 #define URI "api/v1/streaming/user"
 
+#define CURL_USERAGENT "curl/" LIBCURL_VERSION
+
 // ストリーミングを受信する関数のポインタ
 void (*streaming_recieved_handler)(void);
 
@@ -503,7 +505,7 @@ void *stream_thread_func(void *param)
 	hnd = curl_easy_init();
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
-	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
+	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "GET");
@@ -646,7 +648,7 @@ void do_create_client(char *domain, char *dot_ckcs)
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
-	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
+	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -707,7 +709,7 @@ void do_oauth(char *code, char *ck, char *cs)
 	curl_easy_setopt(hnd, CURLOPT_URL, create_uri_string("oauth/token"));
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
-	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
+	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -757,7 +759,7 @@ void do_toot(char *s)
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
 	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
-	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
+	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
@@ -817,7 +819,7 @@ void do_htl(void)
 	hnd = curl_easy_init();
 	curl_easy_setopt(hnd, CURLOPT_URL, create_uri_string("api/v1/timelines/home"));
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
-	curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/7.47.0");
+	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
