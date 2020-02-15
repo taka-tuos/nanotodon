@@ -20,7 +20,7 @@ char *streaming_json = NULL;
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
 // ストリーミングを受信する関数のポインタ
-void (*streaming_recieved_handler)(void);
+void (*streaming_received_handler)(void);
 
 // 受信したストリーミングを処理する関数のポインタ
 void (*stream_event_handler)(struct json_object *);
@@ -199,7 +199,7 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 				free(str);
 				*json = NULL;
 			} else {
-				streaming_recieved_handler();
+				streaming_received_handler();
 			}
 		}
 	}
@@ -429,7 +429,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 }
 
 // ストリーミングで受信したJSON(接続維持用データを取り除き一体化したもの)
-void streaming_recieved(void)
+void streaming_received(void)
 {
 	
 	// イベント取得
@@ -494,7 +494,7 @@ void *stream_thread_func(void *param)
 	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, streaming_callback);
 	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 	
-	streaming_recieved_handler = streaming_recieved;
+	streaming_received_handler = streaming_received;
 	stream_event_handler = NULL;
 	
 	ret = curl_easy_perform(hnd);
