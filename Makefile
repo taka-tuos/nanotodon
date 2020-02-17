@@ -8,7 +8,11 @@ CFLAGS = -g
 CFLAGS+= -DSUPPORT_XDG_BASE_DIR
 
 LDFLAGS = 
-LIBS = -lcurl -ljson-c -lncursesw -lpthread -lm 
+ifeq ($(shell uname -s),Darwin)
+	LIBS = -lcurl -ljson-c -lncurses -lpthread -lm
+else
+	LIBS = -lcurl -ljson-c -lncursesw -lpthread -lm
+endif
 
 # for pkgsrc build
 #CFLAGS+= -I/usr/pkg/include -I/usr/pkg/include/ncursesw -DNCURSES_WIDECHAR
