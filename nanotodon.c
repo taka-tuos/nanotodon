@@ -20,7 +20,7 @@ char *streaming_json = NULL;
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
 // ストリーミングを受信する関数のポインタ
-void (*streaming_recieved_handler)(void);
+void (*streaming_received_handler)(void);
 
 // 受信したストリーミングを処理する関数のポインタ
 void (*stream_event_handler)(struct json_object *);
@@ -199,7 +199,7 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 				free(str);
 				*json = NULL;
 			} else {
-				streaming_recieved_handler();
+				streaming_received_handler();
 			}
 		}
 	}
@@ -219,12 +219,6 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	int exist_status = read_json_fom_path(jobj_from_string, "status", &status);
 	
 	putchar('\a');
-	
-	//FILE *fp = fopen("json.log", "a+");
-	
-	//fputs(json_object_to_json_string(jobj_from_string), fp);
-	//fputs("\n\n", fp);
-	//fclose(fp);
 	
 	// 通知種別を表示に流用するので先頭を大文字化
 	char *t = strdup(json_object_get_string(notify_type));
@@ -268,7 +262,6 @@ void stream_event_notify(struct json_object *jobj_from_string)
 void stream_event_update(struct json_object *jobj_from_string)
 {
 	struct json_object *content, *screen_name, *display_name, *reblog;
-	//struct json_object *jobj_from_string = json_tokener_parse(json);
 	const char *sname, *dname;
 	struct json_object *created_at;
 	struct tm tm;
@@ -285,12 +278,6 @@ void stream_event_update(struct json_object *jobj_from_string)
 	strptime(json_object_get_string(created_at), "%Y-%m-%dT%H:%M:%S", &tm);
 	time = timegm(&tm);
 	strftime(datebuf, sizeof(datebuf), "%x(%a) %X", localtime(&time));
-	
-	//FILE *fp = fopen("json.log", "a+");
-	
-	//fputs(json_object_to_json_string(jobj_from_string), fp);
-	//fputs("\n\n", fp);
-	//fclose(fp);
 	
 	enum json_type type;
 	
@@ -439,19 +426,11 @@ void stream_event_update(struct json_object *jobj_from_string)
 	
 	wmove(pad, pad_x, pad_y);
 	wrefresh(pad);
-	
-	//json_object_put(jobj_from_string);
 }
 
-// ストリーミングで受信したJSONのバッファ
-char **json_recieved = NULL;
-int json_recieved_len = 0;
-
 // ストリーミングで受信したJSON(接続維持用データを取り除き一体化したもの)
-void streaming_recieved(void)
+void streaming_received(void)
 {
-	json_recieved = realloc(json_recieved, (json_recieved_len + 1) * sizeof(char *));
-	json_recieved[json_recieved_len] = strdup(streaming_json);
 	
 	// イベント取得
 	if(strncmp(streaming_json, "event", 5) == 0) {
@@ -515,7 +494,7 @@ void *stream_thread_func(void *param)
 	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, streaming_callback);
 	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
 	
-	streaming_recieved_handler = streaming_recieved;
+	streaming_received_handler = streaming_received;
 	stream_event_handler = NULL;
 	
 	ret = curl_easy_perform(hnd);
@@ -848,13 +827,6 @@ void do_htl(void)
 			struct json_object *obj = json_object_array_get_idx(jobj_from_string, i);
 			
 			stream_event_update(obj);
-			
-			//char *p = strdup(json_object_to_json_string(obj));
-			
-			//FILE *fp = fopen("rest_json.log","wt");
-			//fputs(p, fp);
-			//free(p);
-			//fclose(fp);
 		}
 	}
 	
