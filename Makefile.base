@@ -1,0 +1,12 @@
+TARGET		= nanotodon
+OBJS_TARGET	= nanotodon.o config.o messages.o
+
+CFLAGS = -g
+# optimization
+#CFLAGS+= -O2
+# Use $XDG_CONFIG_HOME or ~/.config dir to save config files
+CFLAGS+= -DSUPPORT_XDG_BASE_DIR
+
+LIBS = -lcurl -ljson-c -lpthread -lm -l$(NCURSES)
+
+include Makefile.in

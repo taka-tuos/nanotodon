@@ -1,0 +1,6 @@
+include Makefile.base
+
+CFLAGS+= -I/usr/pkg/include -I/usr/pkg/include/ncursesw -DNCURSES_WIDECHAR
+LDFLAGS+= -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
+
+NCURSES = ncursesw

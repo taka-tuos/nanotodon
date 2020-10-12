@@ -61,6 +61,8 @@ struct nanotodon_config config;
 int term_w, term_h;
 int pad_x = 0, pad_y = 0;
 int monoflag = 0;
+int hidlckflag = 1;
+int noemojiflag = 0;
 
 // Unicode文字列の幅を返す(半角文字=1)
 int ustrwidth(const char *str)
@@ -226,7 +228,7 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
 	wattron(scr, COLOR_PAIR(4));
-	waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
+	if(!noemojiflag) waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
 	waddstr(scr, t);
 	free(t);
 	waddstr(scr, " from ");
@@ -261,8 +263,8 @@ void stream_event_notify(struct json_object *jobj_from_string)
 #define DATEBUFLEN	40
 void stream_event_update(struct json_object *jobj_from_string)
 {
-	struct json_object *content, *screen_name, *display_name, *reblog;
-	const char *sname, *dname;
+	struct json_object *content, *screen_name, *display_name, *reblog, *visibility;
+	const char *sname, *dname, *vstr;
 	struct json_object *created_at;
 	struct tm tm;
 	time_t time;
@@ -274,10 +276,19 @@ void stream_event_update(struct json_object *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
 	read_json_fom_path(jobj_from_string, "reblog", &reblog);
 	read_json_fom_path(jobj_from_string, "created_at", &created_at);
+	read_json_fom_path(jobj_from_string, "visibility", &visibility);
 	memset(&tm, 0, sizeof(tm));
 	strptime(json_object_get_string(created_at), "%Y-%m-%dT%H:%M:%S", &tm);
 	time = timegm(&tm);
 	strftime(datebuf, sizeof(datebuf), "%x(%a) %X", localtime(&time));
+	
+	vstr = json_object_get_string(visibility);
+	
+	if(hidlckflag) {
+		if(!strcmp(vstr, "private") || !strcmp(vstr, "direct")) {
+			return;
+		}
+	}
 	
 	enum json_type type;
 	
@@ -288,7 +299,8 @@ void stream_event_update(struct json_object *jobj_from_string)
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != json_type_null) {
 		wattron(scr, COLOR_PAIR(3));
-		waddstr(scr, "🔃 Reblog by ");
+		if(!noemojiflag) waddstr(scr, "🔃 ");
+		waddstr(scr, "Reblog by ");
 		waddstr(scr, sname);
 		// dname(表示名)が空の場合は括弧を表示しない
 		if (dname[0] != '\0') wprintw(scr, " (%s)", dname);
@@ -308,6 +320,30 @@ void stream_event_update(struct json_object *jobj_from_string)
 		wattron(scr, COLOR_PAIR(2));
 		wprintw(scr, " (%s)", dname);
 		wattroff(scr, COLOR_PAIR(2));
+	}
+	
+	if(strcmp(vstr, "public")) {
+		int vtyp = strcmp(vstr, "unlisted");
+		wattron(scr, COLOR_PAIR(3)|A_BOLD);
+		waddstr(scr, " ");
+		if(noemojiflag) {
+			if(!strcmp(vstr, "unlisted")) {
+				waddstr(scr, "<UNLIST>");
+			} else if(!strcmp(vstr, "private")) {
+				waddstr(scr, "<PRIVATE>");
+			} else {
+				waddstr(scr, "<!DIRECT!>");
+			}
+		} else {
+			if(!strcmp(vstr, "unlisted")) {
+				waddstr(scr, "🔓");
+			} else if(!strcmp(vstr, "private")) {
+				waddstr(scr, "🔒");
+			} else {
+				waddstr(scr, "✉");
+			}
+		}
+		wattroff(scr, COLOR_PAIR(3)|A_BOLD);
 	}
 	
 	// 日付表示
@@ -390,7 +426,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 			struct json_object *url;
 			read_json_fom_path(obj, "url", &url);
 			if(json_object_is_type(url, json_type_string)) {
-				waddstr(scr, "🔗");
+				waddstr(scr, noemojiflag ? "<LINK>" : "🔗");
 				waddstr(scr, json_object_get_string(url));
 				waddstr(scr, "\n");
 			}
@@ -721,6 +757,23 @@ void do_toot(char *s)
 	struct curl_slist *slist1;
 	char errbuf[CURL_ERROR_SIZE], *uri;
 	
+	int is_locked = 0;
+	int is_unlisted = 0;
+	
+	if(*s == '/') {
+		if(s[1] != 0) {
+			if(s[1] == '/') {
+				s++;
+			} else if(strncmp(s+1,"lock",4) == 0) {
+				is_locked = 1;
+				s += 1+4;
+			} else if(strncmp(s+1,"unlisted",8) == 0) {
+				is_unlisted = 1;
+				s += 1+8;
+			}
+		}
+	}
+	
 	FILE *f = fopen("/dev/null", "wb");
 	
 	uri = create_uri_string("api/v1/statuses");
@@ -734,7 +787,7 @@ void do_toot(char *s)
 				CURLFORM_END);
 	curl_formadd(&post1, &postend,
 				CURLFORM_COPYNAME, "visibility",
-				CURLFORM_COPYCONTENTS, "public",
+				CURLFORM_COPYCONTENTS, is_locked ? "private" : (is_unlisted ? "unlisted" : "public"),
 				CURLFORM_END);
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
@@ -849,6 +902,12 @@ int main(int argc, char *argv[])
 		if(!strcmp(argv[i],"-mono")) {
 			monoflag = 1;
 			printf("Monochrome mode.\n");
+		} else if(!strcmp(argv[i],"-unlock")) {
+			hidlckflag = 0;
+			printf("Show DIRECT and PRIVATE.\n");
+		} else if(!strcmp(argv[i],"-noemoji")) {
+			noemojiflag = 1;
+			printf("Hide UI emojis.\n");
 		} else {
 			fprintf(stderr,"Unknown Option %s\n", argv[i]);
 		}
