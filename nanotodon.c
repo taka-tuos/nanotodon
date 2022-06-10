@@ -15,7 +15,11 @@
 
 char *streaming_json = NULL;
 
-#define URI "api/v1/streaming/user"
+#define URI_STREAM "api/v1/streaming/"
+#define URI_TIMELINE "api/v1/timelines/"
+
+char *selected_stream = "user";
+char *selected_timeline = "home";
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
@@ -28,8 +32,8 @@ void (*stream_event_handler)(struct json_object *);
 // インスタンスにクライアントを登録する
 void do_create_client(char *, char *);
 
-// HTLの受信
-void do_htl(void);
+// Timelineの受信
+void get_timeline(void);
 
 // 承認コードを使ったOAuth処理
 void do_oauth(char *code, char *ck, char *cs);
@@ -504,7 +508,7 @@ void streaming_received(void)
 // ストリーミング受信スレッド
 void *stream_thread_func(void *param)
 {
-	do_htl();
+	get_timeline();
 	
 	CURLcode ret;
 	CURL *hnd;
@@ -514,8 +518,13 @@ void *stream_thread_func(void *param)
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
+	
+	char *uri_stream = malloc(strlen(URI_STREAM) + strlen(selected_stream) + 1);
+	
+	strcpy(uri_stream, URI_STREAM);
+	strcat(uri_stream, selected_stream);
 
-	uri = create_uri_string(URI);
+	uri = create_uri_string(uri_stream);
 
 	hnd = curl_easy_init();
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
@@ -538,6 +547,7 @@ void *stream_thread_func(void *param)
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri_stream);
 	free(uri);
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
@@ -764,7 +774,7 @@ void do_toot(char *s)
 		if(s[1] != 0) {
 			if(s[1] == '/') {
 				s++;
-			} else if(strncmp(s+1,"lock",4) == 0) {
+			} else if(strncmp(s+1,"private",7) == 0) {
 				is_locked = 1;
 				s += 1+4;
 			} else if(strncmp(s+1,"unlisted",8) == 0) {
@@ -840,8 +850,8 @@ size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	return realsize;
 }
 
-// HTLの受信
-void do_htl(void)
+// Timelineの受信
+void get_timeline(void)
 {
 	CURLcode ret;
 	CURL *hnd;
@@ -852,7 +862,12 @@ void do_htl(void)
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
 	
-	uri = create_uri_string("api/v1/timelines/home");
+	char *uri_timeline = malloc(strlen(URI_TIMELINE) + strlen(selected_timeline) + 1);
+	
+	strcpy(uri_timeline, URI_TIMELINE);
+	strcat(uri_timeline, selected_timeline);
+	
+	uri = create_uri_string(uri_timeline);
 
 	char *json = NULL;
 
@@ -887,6 +902,7 @@ void do_htl(void)
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
+	free(uri_timeline);
 	free(uri);
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
@@ -895,8 +911,8 @@ void do_htl(void)
 // メイン関数
 int main(int argc, char *argv[])
 {
-	nano_config_init(&config);
-    
+	config.profile_name[0] = 0;
+	
 	// オプション解析
 	for(int i=1;i<argc;i++) {
 		if(!strcmp(argv[i],"-mono")) {
@@ -908,10 +924,43 @@ int main(int argc, char *argv[])
 		} else if(!strcmp(argv[i],"-noemoji")) {
 			noemojiflag = 1;
 			printf("Hide UI emojis.\n");
+		} else if(!strncmp(argv[i],"-profile",8)) {
+			i++;
+			if(i >= argc) {
+				fprintf(stderr,"too few argments\n");
+				return -1;
+			} else {
+				strcpy(config.profile_name,argv[i]);
+				printf("Using profile: %s\n", config.profile_name);
+			}
+		} else if(!strncmp(argv[i],"-timeline",9)) {
+			i++;
+			if(i >= argc) {
+				fprintf(stderr,"too few argments\n");
+				return -1;
+			} else {
+				if(!strcmp(argv[i],"home")) {
+					
+				} else if(!strcmp(argv[i],"local")) {
+					selected_stream = "public/local";
+					selected_timeline = "public?local=true";
+				} else if(!strcmp(argv[i],"public")) {
+					selected_stream = "public";
+					selected_timeline = "public?local=false";
+				} else {
+					fprintf(stderr,"Unknown timeline %s\n", argv[i]);
+					return -1;
+				}
+				
+				selected_stream = strdup(argv[i]);
+				printf("Using timeline: %s\n", selected_stream);
+			}
 		} else {
 			fprintf(stderr,"Unknown Option %s\n", argv[i]);
 		}
 	}
+	
+	nano_config_init(&config);
 	
 	char *env_lang = getenv("LANG");
 	int msg_lang = 0;
@@ -1106,8 +1155,8 @@ retry1:
 			wresize(scr, term_h - 6, term_w);
 			wresize(pad, 5, term_w);
 			
-			// HTL再取得
-			do_htl();
+			// TL再取得
+			get_timeline();
 			
 			wrefresh(pad);
 			wrefresh(scr);

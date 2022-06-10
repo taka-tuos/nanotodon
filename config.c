@@ -104,10 +104,10 @@ int nano_config_init(struct nanotodon_config *config)
 
 makepath:
 
-	if (snprintf(config->dot_token, sizeof(config->dot_token), "%s/token", config->root_dir) >= sizeof(config->dot_token)) {
+	if (snprintf(config->dot_token, sizeof(config->dot_token), "%s/token%s", config->root_dir, config->profile_name) >= sizeof(config->dot_token)) {
 		goto buffer_err;
 	}
-	if (snprintf(config->dot_domain, sizeof(config->dot_domain), "%s/domain", config->root_dir) >= sizeof(config->dot_domain)) {
+	if (snprintf(config->dot_domain, sizeof(config->dot_domain), "%s/domain%s", config->root_dir, config->profile_name) >= sizeof(config->dot_domain)) {
 		goto buffer_err;
 	}
 

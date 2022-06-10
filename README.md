@@ -28,6 +28,12 @@ TUI/C99 Mastodon Client
 - ```-noemoji```  
 - Remove emojis from UI.
 
+- ```-profile <name>```  
+- Use profile <name>.
+
+- ```-timeline <public|local|home>```  
+- Select timeline(WIP, streaming on local/public may not work).
+
 # Tips
 ## How to UNLISTED toot
 ```/unlisted <your funny toot here>```
@@ -42,3 +48,4 @@ TUI/C99 Mastodon Client
 - ArchLinux + xfce terminal
 - WSL1 + mintty(wsl-terminal)
 - WSL2 + mintty(wsltty)
+- WSL1 + Windows Terminal
