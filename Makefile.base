@@ -7,6 +7,6 @@ CFLAGS = -g
 # Use $XDG_CONFIG_HOME or ~/.config dir to save config files
 CFLAGS+= -DSUPPORT_XDG_BASE_DIR
 
-LIBS = -lcurl -ljson-c -lpthread -lm -l$(NCURSES)
+LIBS = -lcurl -lpthread -lm -l$(NCURSES)
 
 include Makefile.in

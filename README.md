@@ -4,7 +4,6 @@ TUI/C99 Mastodon Client
 # Depended library
 - cURL
 - ncursesw (should to see "How to build" section)
-- json-c
 - pthread
 
 # How to build
@@ -41,7 +40,7 @@ TUI/C99 Mastodon Client
 ## How to PRIVATE toot
 ```/private <your funny toot here>```
 
-# Tested environments
+# Tested environments(outdated)
 - NetBSD/luna68k + mlterm
 - NetBSD/x68k + mlterm
 - NetBSD/sun3 + mlterm
@@ -49,3 +48,6 @@ TUI/C99 Mastodon Client
 - WSL1 + mintty(wsl-terminal)
 - WSL2 + mintty(wsltty)
 - WSL1 + Windows Terminal
+
+# Thanks
+- septag : author of sjson.h (https://github.com/septag/sjson)

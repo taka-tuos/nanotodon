@@ -1,6 +1,4 @@
 #include <curl/curl.h>
-#include <json-c/json.h>
-#include <json-c/json_object.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h> // memmove
@@ -12,6 +10,9 @@
 #include <pthread.h>
 #include "config.h"
 #include "messages.h"
+
+#define SJSON_IMPLEMENT
+#include "sjson.h"
 
 char *streaming_json = NULL;
 
@@ -27,7 +28,7 @@ char *selected_timeline = "home";
 void (*streaming_received_handler)(void);
 
 // 受信したストリーミングを処理する関数のポインタ
-void (*stream_event_handler)(struct json_object *);
+void (*stream_event_handler)(struct sjson_node *);
 
 // インスタンスにクライアントを登録する
 void do_create_client(char *, char *);
@@ -42,10 +43,10 @@ void do_oauth(char *code, char *ck, char *cs);
 void do_toot(char *);
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
-void stream_event_update(struct json_object *);
+void stream_event_update(struct sjson_node *);
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(struct json_object *);
+void stream_event_notify(struct sjson_node *);
 
 // タイムラインWindow
 WINDOW *scr;
@@ -141,10 +142,10 @@ char *create_uri_string(char *api)
 }
 
 // jsonツリーをパス形式(ex. "account/display_name")で掘ってjson_objectを取り出す
-int read_json_fom_path(struct json_object *obj, char *path, struct json_object **dst)
+int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **dst)
 {
 	char *dup = strdup(path);	// strtokは破壊するので複製
-	struct json_object *dir = obj;
+	struct sjson_node *dir = obj;
 	int exist = 1;
 	char *next_key;
 	char last_key[256];
@@ -162,8 +163,11 @@ int read_json_fom_path(struct json_object *obj, char *path, struct json_object *
 		strcpy(last_key, next_key);
 		
 		// 次のノードを取得する
-		struct json_object *next;
-		exist = json_object_object_get_ex(dir, next_key, &next);
+
+		struct sjson_node *next = sjson_find_member(dir, next_key);
+
+		exist = next != 0 ? 1 : 0;
+
 		if(exist) {
 			// 存在しているので現在地ノードを更新
 			dir = next;
@@ -214,9 +218,9 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(struct json_object *jobj_from_string)
+void stream_event_notify(struct sjson_node *jobj_from_string)
 {
-	struct json_object *notify_type, *screen_name, *display_name, *status;
+	struct sjson_node *notify_type, *screen_name, *display_name, *status;
 	const char *dname;
 	if(!jobj_from_string) return;
 	read_json_fom_path(jobj_from_string, "type", &notify_type);
@@ -227,7 +231,7 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	putchar('\a');
 	
 	// 通知種別を表示に流用するので先頭を大文字化
-	char *t = strdup(json_object_get_string(notify_type));
+	char *t = strdup(notify_type->string_);
 	t[0] = toupper(t[0]);
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
@@ -236,9 +240,9 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	waddstr(scr, t);
 	free(t);
 	waddstr(scr, " from ");
-	waddstr(scr, json_object_get_string(screen_name));
+	waddstr(scr, screen_name->string_);
 	
-	dname = json_object_get_string(display_name);
+	dname = display_name->string_;
 	
 	// dname(display_name)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
@@ -247,12 +251,12 @@ void stream_event_notify(struct json_object *jobj_from_string)
 	waddstr(scr, "\n");
 	wattroff(scr, COLOR_PAIR(4));
 	
-	enum json_type type;
+	sjson_tag type;
 	
-	type = json_object_get_type(status);
+	type = status->tag;
 	
 	// 通知対象のTootを表示,Follow通知だとtypeがNULLになる
-	if(type != json_type_null && exist_status) {
+	if(type != SJSON_NULL && exist_status) {
 		stream_event_update(status);
 	}
 	
@@ -265,11 +269,11 @@ void stream_event_notify(struct json_object *jobj_from_string)
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
 #define DATEBUFLEN	40
-void stream_event_update(struct json_object *jobj_from_string)
+void stream_event_update(struct sjson_node *jobj_from_string)
 {
-	struct json_object *content, *screen_name, *display_name, *reblog, *visibility;
+	struct sjson_node *content, *screen_name, *display_name, *reblog, *visibility;
 	const char *sname, *dname, *vstr;
-	struct json_object *created_at;
+	struct sjson_node *created_at;
 	struct tm tm;
 	time_t time;
 	char datebuf[DATEBUFLEN];
@@ -282,11 +286,11 @@ void stream_event_update(struct json_object *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "created_at", &created_at);
 	read_json_fom_path(jobj_from_string, "visibility", &visibility);
 	memset(&tm, 0, sizeof(tm));
-	strptime(json_object_get_string(created_at), "%Y-%m-%dT%H:%M:%S", &tm);
+	strptime(created_at->string_, "%Y-%m-%dT%H:%M:%S", &tm);
 	time = timegm(&tm);
 	strftime(datebuf, sizeof(datebuf), "%x(%a) %X", localtime(&time));
 	
-	vstr = json_object_get_string(visibility);
+	vstr = visibility->string_;
 	
 	if(hidlckflag) {
 		if(!strcmp(vstr, "private") || !strcmp(vstr, "direct")) {
@@ -294,14 +298,14 @@ void stream_event_update(struct json_object *jobj_from_string)
 		}
 	}
 	
-	enum json_type type;
+	sjson_tag type;
 	
-	type = json_object_get_type(reblog);
-	sname = json_object_get_string(screen_name);
-	dname = json_object_get_string(display_name);
+	type = reblog->tag;
+	sname = screen_name->string_;
+	dname = display_name->string_;
 	
 	// ブーストで回ってきた場合はその旨を表示
-	if(type != json_type_null) {
+	if(type != SJSON_NULL) {
 		wattron(scr, COLOR_PAIR(3));
 		if(!noemojiflag) waddstr(scr, "🔃 ");
 		waddstr(scr, "Reblog by ");
@@ -364,7 +368,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 	wattroff(scr, COLOR_PAIR(5));
 	waddstr(scr, "\n");
 	
-	const char *src = json_object_get_string(content);
+	const char *src = content->string_;
 	
 	/*waddstr(scr, src);
 	waddstr(scr, "\n");*/
@@ -420,33 +424,33 @@ void stream_event_update(struct json_object *jobj_from_string)
 	waddstr(scr, "\n");
 	
 	// 添付メディアのURL表示
-	struct json_object *media_attachments;
+	struct sjson_node *media_attachments;
 	
 	read_json_fom_path(jobj_from_string, "media_attachments", &media_attachments);
 	
-	if(json_object_is_type(media_attachments, json_type_array)) {
-		for (int i = 0; i < json_object_array_length(media_attachments); ++i) {
-			struct json_object *obj = json_object_array_get_idx(media_attachments, i);
-			struct json_object *url;
+	if(media_attachments->tag == SJSON_ARRAY) {
+		for (int i = 0; i < sjson_child_count(media_attachments); ++i) {
+			struct sjson_node *obj = sjson_find_element(media_attachments, i);
+			struct sjson_node *url;
 			read_json_fom_path(obj, "url", &url);
-			if(json_object_is_type(url, json_type_string)) {
+			if(url->tag == SJSON_STRING) {
 				waddstr(scr, noemojiflag ? "<LINK>" : "🔗");
-				waddstr(scr, json_object_get_string(url));
+				waddstr(scr, url->string_);
 				waddstr(scr, "\n");
 			}
 		}
 	}
 	
 	// 投稿アプリ名表示
-	struct json_object *application_name;
+	struct sjson_node *application_name;
 	int exist_appname = read_json_fom_path(jobj_from_string, "application/name", &application_name);
 	
 	// 名前が取れたときのみ表示
 	if(exist_appname) {
-		type = json_object_get_type(application_name);
+		type = application_name->tag;
 		
-		if(type != json_type_null) {
-			int l = ustrwidth(json_object_get_string(application_name));
+		if(type != SJSON_NULL) {
+			int l = ustrwidth(application_name->string_);
 		
 			// 右寄せにするために空白を並べる
 			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(scr, " ");
@@ -455,7 +459,7 @@ void stream_event_update(struct json_object *jobj_from_string)
 			waddstr(scr, "via ");
 			wattroff(scr, COLOR_PAIR(1));
 			wattron(scr, COLOR_PAIR(2));
-			waddstr(scr, json_object_get_string(application_name));
+			waddstr(scr, application_name->string_);
 			waddstr(scr, "\n");
 			wattroff(scr, COLOR_PAIR(2));
 		}
@@ -494,9 +498,10 @@ void streaming_received(void)
 	// JSON受信
 	if(strncmp(streaming_json, "data", 4) == 0) {
 		if(stream_event_handler) {
-			struct json_object *jobj_from_string = json_tokener_parse(streaming_json + 6);
+			sjson_context* ctx = sjson_create_context(0, 0, NULL);
+			struct sjson_node *jobj_from_string = sjson_decode(ctx, streaming_json + 6);
 			stream_event_handler(jobj_from_string);
-			json_object_put(jobj_from_string);
+			sjson_destroy_context(ctx);
 			stream_event_handler = NULL;
 		}
 	}
@@ -884,21 +889,23 @@ void get_timeline(void)
 	
 	ret = curl_easy_perform(hnd);
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
+
+
+	sjson_context* ctx = sjson_create_context(0, 0, NULL);
+	struct sjson_node *jobj_from_string = sjson_decode(ctx, json);
+	sjson_tag type;
 	
-	struct json_object *jobj_from_string = json_tokener_parse(json);
-	enum json_type type;
+	type = jobj_from_string->tag;
 	
-	type = json_object_get_type(jobj_from_string);
-	
-	if(type == json_type_array) {
-		for (int i = json_object_array_length(jobj_from_string) - 1; i >= 0; i--) {
-			struct json_object *obj = json_object_array_get_idx(jobj_from_string, i);
+	if(type == SJSON_ARRAY) {
+		for (int i = sjson_child_count(jobj_from_string) - 1; i >= 0; i--) {
+			struct sjson_node *obj = sjson_find_element(jobj_from_string, i);
 			
 			stream_event_update(obj);
 		}
 	}
 	
-	json_object_put(jobj_from_string);
+	sjson_destroy_context(ctx);
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
@@ -906,6 +913,31 @@ void get_timeline(void)
 	free(uri);
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
+}
+
+sjson_node *read_json_from_file(char *path, char **json_p, sjson_context **ctx_p)
+{
+	char *json;
+	FILE *f = fopen(path, "rb");
+
+	fseek(f, 0, SEEK_END);
+	long fsize = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	json = malloc(fsize + 1);
+	*json_p = json;
+
+	fread(json, fsize, 1, f);
+	fclose(f);
+
+	json[fsize] = 0;
+
+	sjson_context* ctx = sjson_create_context(0, 0, NULL);
+	*ctx_p = ctx;
+
+	struct sjson_node *jobj_from_string = sjson_decode(ctx, json);
+
+	return jobj_from_string;
 }
 
 // メイン関数
@@ -972,13 +1004,17 @@ int main(int argc, char *argv[])
 	if(fp) {
 		// 存在すれば読み込む
 		fclose(fp);
-		struct json_object *token;
-		struct json_object *jobj_from_file = json_object_from_file(config.dot_token);
+		struct sjson_context *ctx;
+		char *json;
+		struct sjson_node *token;
+		struct sjson_node *jobj_from_file = read_json_from_file(config.dot_token, &json, &ctx);
 		read_json_fom_path(jobj_from_file, "access_token", &token);
-		sprintf(access_token, "Authorization: Bearer %s", json_object_get_string(token));
+		sprintf(access_token, "Authorization: Bearer %s", token->string_);
 		FILE *f2 = fopen(config.dot_domain, "rb");
 		fscanf(f2, "%255s", domain_string);
 		fclose(f2);
+		sjson_destroy_context(ctx);
+		free(json);
 	} else {
 		// ない場合は登録処理へ
 		char domain[256];
@@ -1018,8 +1054,10 @@ retry1:
 		}
 		
 		// クライアントキーファイルを読む
-		struct json_object *cko, *cso;
-		struct json_object *jobj_from_file = json_object_from_file(json_name);
+		struct sjson_context *ctx;
+		char *json;
+		struct sjson_node *cko, *cso;
+		struct sjson_node *jobj_from_file = read_json_from_file(json_name, &json, &ctx);
 		int r1 = read_json_fom_path(jobj_from_file, "client_id", &cko);
 		int r2 = read_json_fom_path(jobj_from_file, "client_secret", &cso);
 		if(!r1 || !r2) {
@@ -1029,8 +1067,11 @@ retry1:
 			remove(config.dot_domain);
 			goto retry1;
 		}
-		ck = strdup(json_object_get_string(cko));
-		cs = strdup(json_object_get_string(cso));
+		ck = strdup(cko->string_);
+		cs = strdup(cso->string_);
+
+		sjson_destroy_context(ctx);
+		free(json);
 		
 		char code[256];
 		
@@ -1049,8 +1090,8 @@ retry1:
 		free(cs);
 
 		// トークンファイルを読む
-		struct json_object *token;
-		jobj_from_file = json_object_from_file(config.dot_token);
+		struct sjson_node *token;
+		jobj_from_file = read_json_from_file(config.dot_token, &json, &ctx);
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
 		if(!r3) {
 			// もしおかしければ最初まで戻る
@@ -1060,8 +1101,12 @@ retry1:
 			remove(config.dot_token);
 			goto retry1;
 		}
+
+		sjson_destroy_context(ctx);
+		free(json);
+
 		// httpヘッダに添付する用の形式でコピーしておく
-		sprintf(access_token, "Authorization: Bearer %s", json_object_get_string(token));
+		sprintf(access_token, "Authorization: Bearer %s", token->string_);
 		printf(nano_msg_list[msg_lang][NANO_MSG_FINISH]);
 	}
 	
