@@ -196,10 +196,37 @@ typedef struct sjson_node
     };
 } sjson_node;
 
+typedef struct sjson__str_page
+{
+    int					    offset;
+    int					    size;
+    struct sjson__str_page* next;
+    struct sjson__str_page* prev;
+} sjson__str_page;
+
+typedef struct sjson__node_page
+{
+    int 				     iter;
+    int 				     capacity;
+    sjson_node** 		     ptrs;
+    sjson_node* 			 buff;
+    struct sjson__node_page* next;
+    struct sjson__node_page* prev;
+} sjson__node_page;
+
 // Json context, handles memory, pools, etc.
 // Almost every API needs a valid context to work
 // Not multi-threaded. Do not use the same context in multiple threads
-typedef struct sjson_context sjson_context;
+typedef struct sjson_context
+{
+    void*			  alloc_user;
+    int				  pool_size;
+    int 		      str_buffer_size;
+    sjson__node_page* node_pages;
+    sjson__str_page*  str_pages;
+    sjson__str_page*  cur_str_page;
+    char*			  cur_str;
+} sjson_context;
 
 #ifdef __cplusplus
 extern "C" {
@@ -384,34 +411,6 @@ bool sjson_check(const sjson_node* node, char errmsg[256]);
 
 #define sjson__align_mask(_value, _mask) ( ( (_value)+(_mask) ) & ( (~0)&(~(_mask) ) ) )
 
-typedef struct sjson__str_page
-{
-    int					    offset;
-    int					    size;
-    struct sjson__str_page* next;
-    struct sjson__str_page* prev;
-} sjson__str_page;
-
-typedef struct sjson__node_page
-{
-    int 				     iter;
-    int 				     capacity;
-    sjson_node** 		     ptrs;
-    sjson_node* 			 buff;
-    struct sjson__node_page* next;
-    struct sjson__node_page* prev;
-} sjson__node_page;
-
-typedef struct sjson_context 
-{
-    void*			  alloc_user;
-    int				  pool_size;
-    int 		      str_buffer_size;
-    sjson__node_page* node_pages;	
-    sjson__str_page*  str_pages;
-    sjson__str_page*  cur_str_page;
-    char*			  cur_str;
-} sjson_context;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Growable string buffer
