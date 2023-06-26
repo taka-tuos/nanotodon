@@ -6,8 +6,7 @@ CP		= cp
 
 # default
 
-default :
-	$(MAKE) $(TARGET)
+default : $(TARGET)
 
 # rules
 
