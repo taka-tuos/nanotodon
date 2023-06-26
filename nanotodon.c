@@ -412,6 +412,10 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 					waddch(scr, '\'');
 					src += 5;
 				}
+				else if(strncmp(src, "&#39;", 5) == 0) {
+					waddch(scr, '\'');
+					src += 4;
+				}
 			} else {
 				// 通常文字
 				waddch(scr, *((unsigned char *)src));
