@@ -14,7 +14,7 @@ TUI/C99 Mastodon Client
 ```make```
 
 ## If your package manager don't have ncursesw (when ncursesw is combined in ncurses package)
-```make NCURSES=ncurces```
+```make NCURSES=ncurses```
 
 # Options
 

@@ -785,7 +785,7 @@ void do_toot(char *s)
 				s++;
 			} else if(strncmp(s+1,"private",7) == 0) {
 				is_locked = 1;
-				s += 1+4;
+				s += 1+7;
 			} else if(strncmp(s+1,"unlisted",8) == 0) {
 				is_unlisted = 1;
 				s += 1+8;
