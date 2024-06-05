@@ -1,6 +1,7 @@
 #include <curl/curl.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <strings.h>
 #include <string.h> // memmove
 #include <time.h>   // strptime, strptime, timegm, localtime
 #include <ctype.h>  // isspace

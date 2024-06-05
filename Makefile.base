@@ -5,7 +5,7 @@ CFLAGS = -g
 # optimization
 #CFLAGS+= -O2
 # Use $XDG_CONFIG_HOME or ~/.config dir to save config files
-CFLAGS+= -DSUPPORT_XDG_BASE_DIR
+CFLAGS+= -DSUPPORT_XDG_BASE_DIR -D_XOPEN_SOURCE -D_DEFAULT_SOURCE -D_BSD_SOURCE -DNCURSES_WIDECHAR
 
 LIBS = -lcurl -lpthread -lm -l$(NCURSES)
 
