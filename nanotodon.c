@@ -6,6 +6,7 @@
 #include <time.h>   // strptime, strptime, timegm, localtime
 #include <ctype.h>  // isspace
 #include <locale.h> // setlocale
+#include <sys/time.h>
 #include <curses.h>
 #include <ncurses.h>
 #include <pthread.h>
@@ -33,6 +34,13 @@ typedef struct {
 	char cache[SBCTX_CACHESIZE];
 	int cacheptr;
 } sbctx_t;
+
+
+#define QUEUE_SIZE 512
+sbctx_t queue_data[QUEUE_SIZE];
+pthread_mutex_t queue_mutex;
+int queue_head;
+int queue_num;
 
 // ストリーミングを受信する関数のポインタ
 void (*streaming_received_handler)(void);
@@ -286,6 +294,53 @@ void naddstr(sbctx_t *sbctx, char *s)
 {
 	//waddstr(sbctx, s);
 	nputbuf(sbctx, s, strlen(s));
+}
+
+int squeue_enqueue(sbctx_t enq_data)
+{
+	int ret = 0;
+
+	pthread_mutex_lock(&queue_mutex);
+	//waddstr(scr, "en_lock");
+	//wrefresh(scr);
+	
+    if (queue_num < QUEUE_SIZE) {
+        queue_data[(queue_head + queue_num) % QUEUE_SIZE] = enq_data;
+        queue_num++;
+        ret = 0;
+    } else {
+        ret = 1;
+    }
+
+	//waddstr(scr, "en_unlock");
+	//wrefresh(scr);
+	pthread_mutex_unlock(&queue_mutex);
+
+	return ret;
+}
+
+int squeue_dequeue(sbctx_t *deq_data)
+{
+	int ret = 0;
+
+	pthread_mutex_lock(&queue_mutex);
+	//waddstr(scr, "de_lock");
+	//wrefresh(scr);
+
+    if (queue_num > 0) {
+        *deq_data = queue_data[queue_head];
+        queue_head = (queue_head + 1) % QUEUE_SIZE;
+        queue_num--;
+        ret = 0;
+    } else {
+        ret = 1;
+    }
+
+	//waddstr(scr, "de_unlock");
+	//wrefresh(scr);
+	pthread_mutex_unlock(&queue_mutex);
+
+	return ret;
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
@@ -591,10 +646,7 @@ void streaming_received(void)
 			stream_event_handler(&sb, jobj_from_string);
 
 			nflushcache(&sb);
-			sb.buf[sb.bufptr] = 0;
-			waddstr(scr, (char *)sb.buf);
-			free(sb.buf);
-			wrefresh(scr);
+			squeue_enqueue(sb);
 
 			sjson_destroy_context(ctx);
 			stream_event_handler = NULL;
@@ -1002,10 +1054,7 @@ void get_timeline(void)
 			stream_event_update(&sb, obj);
 
 			nflushcache(&sb);
-			sb.buf[sb.bufptr] = 0;
-			waddstr(scr, (char *)sb.buf);
-			free(sb.buf);
-			wrefresh(scr);
+			squeue_enqueue(sb);
 		}
 	}
 	
@@ -1248,6 +1297,9 @@ retry1:
 	
 	wrefresh(scr);
 	
+	pthread_mutex_init(&queue_mutex, NULL);
+	queue_head = queue_num = 0;
+
 	pthread_t stream_thread;
 	
 	// ストリーミングスレッド生成
@@ -1287,6 +1339,15 @@ retry1:
 	
 	while (1)
 	{
+		sbctx_t sb;
+		if(!squeue_dequeue(&sb)) {
+			sb.buf[sb.bufptr] = 0;
+			waddstr(scr, (char *)sb.buf);
+			free(sb.buf);
+			wrefresh(scr);
+		}
+		const struct timespec req = {0, 10 * 1000000};
+		nanosleep(&req, NULL);
 		/*wchar_t c;
 		wget_wch(pad, &c);
 		if(c == KEY_RESIZE) {
