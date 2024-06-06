@@ -25,11 +25,14 @@ char *selected_timeline = "home";
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
+// String Bufferの型定義(仮)
+typedef WINDOW sbctx_t;
+
 // ストリーミングを受信する関数のポインタ
 void (*streaming_received_handler)(void);
 
 // 受信したストリーミングを処理する関数のポインタ
-void (*stream_event_handler)(struct sjson_node *);
+void (*stream_event_handler)(sbctx_t *sbctx, struct sjson_node *);
 
 // インスタンスにクライアントを登録する
 void do_create_client(char *, char *);
@@ -44,10 +47,10 @@ void do_oauth(char *code, char *ck, char *cs);
 void do_toot(char *);
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
-void stream_event_update(struct sjson_node *);
+void stream_event_update(sbctx_t *sbctx, struct sjson_node *);
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(struct sjson_node *);
+void stream_event_notify(sbctx_t *sbctx, struct sjson_node *);
 
 // タイムラインWindow
 WINDOW *scr;
@@ -219,7 +222,7 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(struct sjson_node *jobj_from_string)
+void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 {
 	struct sjson_node *notify_type, *screen_name, *display_name, *status;
 	const char *dname;
@@ -236,23 +239,23 @@ void stream_event_notify(struct sjson_node *jobj_from_string)
 	t[0] = toupper(t[0]);
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
-	wattron(scr, COLOR_PAIR(4));
-	if(!noemojiflag) waddstr(scr, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
-	waddstr(scr, t);
+	wattron(sbctx, COLOR_PAIR(4));
+	if(!noemojiflag) waddstr(sbctx, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
+	waddstr(sbctx, t);
 	free(t);
-	waddstr(scr, " from ");
-	waddstr(scr, screen_name->string_);
+	waddstr(sbctx, " from ");
+	waddstr(sbctx, screen_name->string_);
 	
 	dname = display_name->string_;
 	
 	// dname(display_name)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
-		waddstr(scr, " (");
-		waddstr(scr, dname);
-		waddstr(scr, ")");
+		waddstr(sbctx, " (");
+		waddstr(sbctx, dname);
+		waddstr(sbctx, ")");
 	}
-	waddstr(scr, "\n");
-	wattroff(scr, COLOR_PAIR(4));
+	waddstr(sbctx, "\n");
+	wattroff(sbctx, COLOR_PAIR(4));
 	
 	sjson_tag type;
 	
@@ -260,11 +263,11 @@ void stream_event_notify(struct sjson_node *jobj_from_string)
 	
 	// 通知対象のTootを表示,Follow通知だとtypeがNULLになる
 	if(type != SJSON_NULL && exist_status) {
-		stream_event_update(status);
+		stream_event_update(sbctx, status);
 	}
 	
-	waddstr(scr, "\n");
-	wrefresh(scr);
+	waddstr(sbctx, "\n");
+	wrefresh(sbctx);
 	
 	wmove(pad, pad_x, pad_y);
 	wrefresh(pad);
@@ -272,7 +275,7 @@ void stream_event_notify(struct sjson_node *jobj_from_string)
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
 #define DATEBUFLEN	40
-void stream_event_update(struct sjson_node *jobj_from_string)
+void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 {
 	struct sjson_node *content, *screen_name, *display_name, *reblog, *visibility;
 	const char *sname, *dname, *vstr;
@@ -309,78 +312,78 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 	
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != SJSON_NULL) {
-		wattron(scr, COLOR_PAIR(3));
-		if(!noemojiflag) waddstr(scr, "🔃 ");
-		waddstr(scr, "Reblog by ");
-		waddstr(scr, sname);
+		wattron(sbctx,  COLOR_PAIR(3));
+		if(!noemojiflag) waddstr(sbctx,  "🔃 ");
+		waddstr(sbctx,  "Reblog by ");
+		waddstr(sbctx,  sname);
 		// dname(表示名)が空の場合は括弧を表示しない
 		if (dname[0] != '\0') {
-			waddstr(scr, " (");
-			waddstr(scr, dname);
-			waddstr(scr, ")");
+			waddstr(sbctx,  " (");
+			waddstr(sbctx,  dname);
+			waddstr(sbctx,  ")");
 		}
-		waddstr(scr, "\n");
-		wattroff(scr, COLOR_PAIR(3));
-		stream_event_update(reblog);
+		waddstr(sbctx,  "\n");
+		wattroff(sbctx,  COLOR_PAIR(3));
+		stream_event_update(sbctx, reblog);
 		return;
 	}
 	
 	// 誰からか[ screen_name(display_name) ]を表示
-	wattron(scr, COLOR_PAIR(1)|A_BOLD);
-	waddstr(scr, sname);
-	wattroff(scr, COLOR_PAIR(1)|A_BOLD);
+	wattron(sbctx,  COLOR_PAIR(1)|A_BOLD);
+	waddstr(sbctx,  sname);
+	wattroff(sbctx,  COLOR_PAIR(1)|A_BOLD);
 	
 	// dname(表示名)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
-		wattron(scr, COLOR_PAIR(2));
-		waddstr(scr, " (");
-		waddstr(scr, dname);
-		waddstr(scr, ")");
-		wattroff(scr, COLOR_PAIR(2));
+		wattron(sbctx,  COLOR_PAIR(2));
+		waddstr(sbctx,  " (");
+		waddstr(sbctx,  dname);
+		waddstr(sbctx,  ")");
+		wattroff(sbctx,  COLOR_PAIR(2));
 	}
 	
 	if(strcmp(vstr, "public")) {
 		int vtyp = strcmp(vstr, "unlisted");
-		wattron(scr, COLOR_PAIR(3)|A_BOLD);
-		waddstr(scr, " ");
+		wattron(sbctx,  COLOR_PAIR(3)|A_BOLD);
+		waddstr(sbctx,  " ");
 		if(noemojiflag) {
 			if(!strcmp(vstr, "unlisted")) {
-				waddstr(scr, "<UNLIST>");
+				waddstr(sbctx,  "<UNLIST>");
 			} else if(!strcmp(vstr, "private")) {
-				waddstr(scr, "<PRIVATE>");
+				waddstr(sbctx,  "<PRIVATE>");
 			} else {
-				waddstr(scr, "<!DIRECT!>");
+				waddstr(sbctx,  "<!DIRECT!>");
 			}
 		} else {
 			if(!strcmp(vstr, "unlisted")) {
-				waddstr(scr, "🔓");
+				waddstr(sbctx,  "🔓");
 			} else if(!strcmp(vstr, "private")) {
-				waddstr(scr, "🔒");
+				waddstr(sbctx,  "🔒");
 			} else {
-				waddstr(scr, "✉");
+				waddstr(sbctx,  "✉");
 			}
 		}
-		wattroff(scr, COLOR_PAIR(3)|A_BOLD);
+		wattroff(sbctx,  COLOR_PAIR(3)|A_BOLD);
 	}
 	
 	// 日付表示
 	date_w = ustrwidth(datebuf) + 1;
-	getyx(scr, y, x);
+	getyx(sbctx,  y, x);
 	if (x < term_w - date_w) {
-		for(int i = 0; i < term_w - x - date_w; i++) waddstr(scr, " ");
+		for(int i = 0; i < term_w - x - date_w; i++) waddstr(sbctx,  " ");
 	} else {
-		for(int i = 0; i < x - (term_w - date_w); i++) waddstr(scr, "\b");
-		waddstr(scr, "\b ");
+		for(int i = 0; i < x - (term_w - date_w); i++) waddstr(sbctx,  "\b");
+		waddstr(sbctx,  "\b ");
 	}
-	wattron(scr, COLOR_PAIR(5));
-	waddstr(scr, datebuf);
-	wattroff(scr, COLOR_PAIR(5));
-	waddstr(scr, "\n");
+	wattron(sbctx,  COLOR_PAIR(5));
+	waddstr(sbctx,  datebuf);
+	wattroff(sbctx,  COLOR_PAIR(5));
+	waddstr(sbctx,  "\n");
 	
 	const char *src = content->string_;
 	
-	/*waddstr(scr, src);
-	waddstr(scr, "\n");*/
+	/*waddstr(sbctx,  src);
+	waddstr(sbctx,  "\n");*/
 	
 	// タグ消去処理、2個目以降のの<p>は改行に
 	int ltgt = 0;
@@ -389,11 +392,11 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 		// タグならタグフラグを立てる
 		if(*src == '<') ltgt = 1;
 		
-		if(ltgt && strncmp(src, "<br", 3) == 0) waddch(scr, '\n');
+		if(ltgt && strncmp(src, "<br", 3) == 0) waddch(sbctx,  '\n');
 		if(ltgt && strncmp(src, "<p", 2) == 0) {
 			pcount++;
 			if(pcount >= 2) {
-				waddstr(scr, "\n\n");
+				waddstr(sbctx,  "\n\n");
 			}
 		}
 		
@@ -402,39 +405,39 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 			// 文字実体参照の処理
 			if(*src == '&') {
 				if(strncmp(src, "&amp;", 5) == 0) {
-					waddch(scr, '&');
+					waddch(sbctx,  '&');
 					src += 4;
 				}
 				else if(strncmp(src, "&lt;", 4) == 0) {
-					waddch(scr, '<');
+					waddch(sbctx,  '<');
 					src += 3;
 				}
 				else if(strncmp(src, "&gt;", 4) == 0) {
-					waddch(scr, '>');
+					waddch(sbctx,  '>');
 					src += 3;
 				}
 				else if(strncmp(src, "&quot;", 6) == 0) {
-					waddch(scr, '\"');
+					waddch(sbctx,  '\"');
 					src += 5;
 				}
 				else if(strncmp(src, "&apos;", 6) == 0) {
-					waddch(scr, '\'');
+					waddch(sbctx,  '\'');
 					src += 5;
 				}
 				else if(strncmp(src, "&#39;", 5) == 0) {
-					waddch(scr, '\'');
+					waddch(sbctx,  '\'');
 					src += 4;
 				}
 			} else {
 				// 通常文字
-				waddch(scr, *((unsigned char *)src));
+				waddch(sbctx,  *((unsigned char *)src));
 			}
 		}
 		if(*src == '>') ltgt = 0;
 		src++;
 	}
 	
-	waddstr(scr, "\n");
+	waddstr(sbctx,  "\n");
 	
 	// 添付メディアのURL表示
 	struct sjson_node *media_attachments;
@@ -447,9 +450,9 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 			struct sjson_node *url;
 			read_json_fom_path(obj, "url", &url);
 			if(url->tag == SJSON_STRING) {
-				waddstr(scr, noemojiflag ? "<LINK>" : "🔗");
-				waddstr(scr, url->string_);
-				waddstr(scr, "\n");
+				waddstr(sbctx,  noemojiflag ? "<LINK>" : "🔗");
+				waddstr(sbctx,  url->string_);
+				waddstr(sbctx,  "\n");
 			}
 		}
 	}
@@ -466,19 +469,19 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 			int l = ustrwidth(application_name->string_);
 		
 			// 右寄せにするために空白を並べる
-			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(scr, " ");
+			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(sbctx,  " ");
 			
-			wattron(scr, COLOR_PAIR(1));
-			waddstr(scr, "via ");
-			wattroff(scr, COLOR_PAIR(1));
-			wattron(scr, COLOR_PAIR(2));
-			waddstr(scr, application_name->string_);
-			waddstr(scr, "\n");
-			wattroff(scr, COLOR_PAIR(2));
+			wattron(sbctx,  COLOR_PAIR(1));
+			waddstr(sbctx,  "via ");
+			wattroff(sbctx,  COLOR_PAIR(1));
+			wattron(sbctx,  COLOR_PAIR(2));
+			waddstr(sbctx,  application_name->string_);
+			waddstr(sbctx,  "\n");
+			wattroff(sbctx,  COLOR_PAIR(2));
 		}
 	}
 	
-	waddstr(scr, "\n");
+	waddstr(sbctx,  "\n");
 	wrefresh(scr);
 	
 	wmove(pad, pad_x, pad_y);
@@ -513,7 +516,7 @@ void streaming_received(void)
 		if(stream_event_handler) {
 			sjson_context* ctx = sjson_create_context(0, 0, NULL);
 			struct sjson_node *jobj_from_string = sjson_decode(ctx, streaming_json + 6);
-			stream_event_handler(jobj_from_string);
+			stream_event_handler((sbctx_t *)scr, jobj_from_string);
 			sjson_destroy_context(ctx);
 			stream_event_handler = NULL;
 		}
@@ -914,7 +917,7 @@ void get_timeline(void)
 		for (int i = sjson_child_count(jobj_from_string) - 1; i >= 0; i--) {
 			struct sjson_node *obj = sjson_find_element(jobj_from_string, i);
 			
-			stream_event_update(obj);
+			stream_event_update(scr, obj);
 		}
 	}
 	
