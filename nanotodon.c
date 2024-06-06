@@ -221,6 +221,30 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	return realsize;
 }
 
+// アトリビュートON
+void nattron(sbctx_t *sbctx, int n)
+{
+	wattron(sbctx, n);
+}
+
+// アトリビュートOFF
+void nattroff(sbctx_t *sbctx, int n)
+{
+	wattroff(sbctx, n);
+}
+
+// 1文字出力
+void naddch(sbctx_t *sbctx, int c)
+{
+	waddch(sbctx, c);
+}
+
+// 文字列出力
+void naddstr(sbctx_t *sbctx, char *s)
+{
+	waddstr(sbctx, s);
+}
+
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
 void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 {
@@ -239,23 +263,23 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	t[0] = toupper(t[0]);
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
-	wattron(sbctx, COLOR_PAIR(4));
-	if(!noemojiflag) waddstr(sbctx, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
-	waddstr(sbctx, t);
+	nattron(sbctx, COLOR_PAIR(4));
+	if(!noemojiflag) naddstr(sbctx, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
+	naddstr(sbctx, t);
 	free(t);
-	waddstr(sbctx, " from ");
-	waddstr(sbctx, screen_name->string_);
+	naddstr(sbctx, " from ");
+	naddstr(sbctx, screen_name->string_);
 	
 	dname = display_name->string_;
 	
 	// dname(display_name)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
-		waddstr(sbctx, " (");
-		waddstr(sbctx, dname);
-		waddstr(sbctx, ")");
+		naddstr(sbctx, " (");
+		naddstr(sbctx, dname);
+		naddstr(sbctx, ")");
 	}
-	waddstr(sbctx, "\n");
-	wattroff(sbctx, COLOR_PAIR(4));
+	naddstr(sbctx, "\n");
+	nattroff(sbctx, COLOR_PAIR(4));
 	
 	sjson_tag type;
 	
@@ -266,7 +290,8 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 		stream_event_update(sbctx, status);
 	}
 	
-	waddstr(sbctx, "\n");
+	naddstr(sbctx, "\n");
+
 	wrefresh(sbctx);
 	
 	wmove(pad, pad_x, pad_y);
@@ -312,78 +337,78 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != SJSON_NULL) {
-		wattron(sbctx,  COLOR_PAIR(3));
-		if(!noemojiflag) waddstr(sbctx,  "🔃 ");
-		waddstr(sbctx,  "Reblog by ");
-		waddstr(sbctx,  sname);
+		nattron(sbctx,  COLOR_PAIR(3));
+		if(!noemojiflag) naddstr(sbctx,  "🔃 ");
+		naddstr(sbctx,  "Reblog by ");
+		naddstr(sbctx,  sname);
 		// dname(表示名)が空の場合は括弧を表示しない
 		if (dname[0] != '\0') {
-			waddstr(sbctx,  " (");
-			waddstr(sbctx,  dname);
-			waddstr(sbctx,  ")");
+			naddstr(sbctx,  " (");
+			naddstr(sbctx,  dname);
+			naddstr(sbctx,  ")");
 		}
-		waddstr(sbctx,  "\n");
-		wattroff(sbctx,  COLOR_PAIR(3));
+		naddstr(sbctx,  "\n");
+		nattroff(sbctx,  COLOR_PAIR(3));
 		stream_event_update(sbctx, reblog);
 		return;
 	}
 	
 	// 誰からか[ screen_name(display_name) ]を表示
-	wattron(sbctx,  COLOR_PAIR(1)|A_BOLD);
-	waddstr(sbctx,  sname);
-	wattroff(sbctx,  COLOR_PAIR(1)|A_BOLD);
+	nattron(sbctx,  COLOR_PAIR(1)|A_BOLD);
+	naddstr(sbctx,  sname);
+	nattroff(sbctx,  COLOR_PAIR(1)|A_BOLD);
 	
 	// dname(表示名)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
-		wattron(sbctx,  COLOR_PAIR(2));
-		waddstr(sbctx,  " (");
-		waddstr(sbctx,  dname);
-		waddstr(sbctx,  ")");
-		wattroff(sbctx,  COLOR_PAIR(2));
+		nattron(sbctx,  COLOR_PAIR(2));
+		naddstr(sbctx,  " (");
+		naddstr(sbctx,  dname);
+		naddstr(sbctx,  ")");
+		nattroff(sbctx,  COLOR_PAIR(2));
 	}
 	
 	if(strcmp(vstr, "public")) {
 		int vtyp = strcmp(vstr, "unlisted");
-		wattron(sbctx,  COLOR_PAIR(3)|A_BOLD);
-		waddstr(sbctx,  " ");
+		nattron(sbctx,  COLOR_PAIR(3)|A_BOLD);
+		naddstr(sbctx,  " ");
 		if(noemojiflag) {
 			if(!strcmp(vstr, "unlisted")) {
-				waddstr(sbctx,  "<UNLIST>");
+				naddstr(sbctx,  "<UNLIST>");
 			} else if(!strcmp(vstr, "private")) {
-				waddstr(sbctx,  "<PRIVATE>");
+				naddstr(sbctx,  "<PRIVATE>");
 			} else {
-				waddstr(sbctx,  "<!DIRECT!>");
+				naddstr(sbctx,  "<!DIRECT!>");
 			}
 		} else {
 			if(!strcmp(vstr, "unlisted")) {
-				waddstr(sbctx,  "🔓");
+				naddstr(sbctx,  "🔓");
 			} else if(!strcmp(vstr, "private")) {
-				waddstr(sbctx,  "🔒");
+				naddstr(sbctx,  "🔒");
 			} else {
-				waddstr(sbctx,  "✉");
+				naddstr(sbctx,  "✉");
 			}
 		}
-		wattroff(sbctx,  COLOR_PAIR(3)|A_BOLD);
+		nattroff(sbctx,  COLOR_PAIR(3)|A_BOLD);
 	}
 	
 	// 日付表示
 	date_w = ustrwidth(datebuf) + 1;
 	getyx(sbctx,  y, x);
 	if (x < term_w - date_w) {
-		for(int i = 0; i < term_w - x - date_w; i++) waddstr(sbctx,  " ");
+		for(int i = 0; i < term_w - x - date_w; i++) naddstr(sbctx,  " ");
 	} else {
-		for(int i = 0; i < x - (term_w - date_w); i++) waddstr(sbctx,  "\b");
-		waddstr(sbctx,  "\b ");
+		for(int i = 0; i < x - (term_w - date_w); i++) naddstr(sbctx,  "\b");
+		naddstr(sbctx,  "\b ");
 	}
-	wattron(sbctx,  COLOR_PAIR(5));
-	waddstr(sbctx,  datebuf);
-	wattroff(sbctx,  COLOR_PAIR(5));
-	waddstr(sbctx,  "\n");
+	nattron(sbctx,  COLOR_PAIR(5));
+	naddstr(sbctx,  datebuf);
+	nattroff(sbctx,  COLOR_PAIR(5));
+	naddstr(sbctx,  "\n");
 	
 	const char *src = content->string_;
 	
-	/*waddstr(sbctx,  src);
-	waddstr(sbctx,  "\n");*/
+	/*naddstr(sbctx,  src);
+	naddstr(sbctx,  "\n");*/
 	
 	// タグ消去処理、2個目以降のの<p>は改行に
 	int ltgt = 0;
@@ -392,11 +417,11 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		// タグならタグフラグを立てる
 		if(*src == '<') ltgt = 1;
 		
-		if(ltgt && strncmp(src, "<br", 3) == 0) waddch(sbctx,  '\n');
+		if(ltgt && strncmp(src, "<br", 3) == 0) naddch(sbctx,  '\n');
 		if(ltgt && strncmp(src, "<p", 2) == 0) {
 			pcount++;
 			if(pcount >= 2) {
-				waddstr(sbctx,  "\n\n");
+				naddstr(sbctx,  "\n\n");
 			}
 		}
 		
@@ -405,39 +430,39 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 			// 文字実体参照の処理
 			if(*src == '&') {
 				if(strncmp(src, "&amp;", 5) == 0) {
-					waddch(sbctx,  '&');
+					naddch(sbctx,  '&');
 					src += 4;
 				}
 				else if(strncmp(src, "&lt;", 4) == 0) {
-					waddch(sbctx,  '<');
+					naddch(sbctx,  '<');
 					src += 3;
 				}
 				else if(strncmp(src, "&gt;", 4) == 0) {
-					waddch(sbctx,  '>');
+					naddch(sbctx,  '>');
 					src += 3;
 				}
 				else if(strncmp(src, "&quot;", 6) == 0) {
-					waddch(sbctx,  '\"');
+					naddch(sbctx,  '\"');
 					src += 5;
 				}
 				else if(strncmp(src, "&apos;", 6) == 0) {
-					waddch(sbctx,  '\'');
+					naddch(sbctx,  '\'');
 					src += 5;
 				}
 				else if(strncmp(src, "&#39;", 5) == 0) {
-					waddch(sbctx,  '\'');
+					naddch(sbctx,  '\'');
 					src += 4;
 				}
 			} else {
 				// 通常文字
-				waddch(sbctx,  *((unsigned char *)src));
+				naddch(sbctx,  *((unsigned char *)src));
 			}
 		}
 		if(*src == '>') ltgt = 0;
 		src++;
 	}
 	
-	waddstr(sbctx,  "\n");
+	naddstr(sbctx,  "\n");
 	
 	// 添付メディアのURL表示
 	struct sjson_node *media_attachments;
@@ -450,9 +475,9 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 			struct sjson_node *url;
 			read_json_fom_path(obj, "url", &url);
 			if(url->tag == SJSON_STRING) {
-				waddstr(sbctx,  noemojiflag ? "<LINK>" : "🔗");
-				waddstr(sbctx,  url->string_);
-				waddstr(sbctx,  "\n");
+				naddstr(sbctx,  noemojiflag ? "<LINK>" : "🔗");
+				naddstr(sbctx,  url->string_);
+				naddstr(sbctx,  "\n");
 			}
 		}
 	}
@@ -469,19 +494,19 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 			int l = ustrwidth(application_name->string_);
 		
 			// 右寄せにするために空白を並べる
-			for(int i = 0; i < term_w - (l + 4 + 1); i++) waddstr(sbctx,  " ");
+			for(int i = 0; i < term_w - (l + 4 + 1); i++) naddstr(sbctx,  " ");
 			
-			wattron(sbctx,  COLOR_PAIR(1));
-			waddstr(sbctx,  "via ");
-			wattroff(sbctx,  COLOR_PAIR(1));
-			wattron(sbctx,  COLOR_PAIR(2));
-			waddstr(sbctx,  application_name->string_);
-			waddstr(sbctx,  "\n");
-			wattroff(sbctx,  COLOR_PAIR(2));
+			nattron(sbctx,  COLOR_PAIR(1));
+			naddstr(sbctx,  "via ");
+			nattroff(sbctx,  COLOR_PAIR(1));
+			nattron(sbctx,  COLOR_PAIR(2));
+			naddstr(sbctx,  application_name->string_);
+			naddstr(sbctx,  "\n");
+			nattroff(sbctx,  COLOR_PAIR(2));
 		}
 	}
 	
-	waddstr(sbctx,  "\n");
+	naddstr(sbctx,  "\n");
 	wrefresh(scr);
 	
 	wmove(pad, pad_x, pad_y);
