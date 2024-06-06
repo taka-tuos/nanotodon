@@ -1,6 +1,9 @@
 # nanotodon
 TUI/C99 Mastodon Client
 
+# WARN
+現在かなり大規模に開発中です。安定利用はできません
+
 # Depended library
 - cURL
 - ncursesw (should to see "How to build" section)

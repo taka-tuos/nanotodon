@@ -1287,7 +1287,7 @@ retry1:
 	
 	while (1)
 	{
-		wchar_t c;
+		/*wchar_t c;
 		wget_wch(pad, &c);
 		if(c == KEY_RESIZE) {
 			// リサイズ処理
@@ -1347,7 +1347,7 @@ retry1:
 			pad_x = 0;
 			pad_y = 0;
 		}
-		wrefresh(pad);
+		wrefresh(pad);*/
 	}
 
 	return 0;
