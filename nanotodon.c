@@ -25,8 +25,14 @@ char *selected_timeline = "home";
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
-// String Bufferの型定義(仮)
-typedef WINDOW sbctx_t;
+// String Bufferの型定義
+#define SBCTX_CACHESIZE 512
+typedef struct {
+	char *buf;
+	int bufptr;
+	char cache[SBCTX_CACHESIZE];
+	int cacheptr;
+} sbctx_t;
 
 // ストリーミングを受信する関数のポインタ
 void (*streaming_received_handler)(void);
@@ -221,28 +227,65 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	return realsize;
 }
 
+// Stringバッファ初期化
+void ninitbuf(sbctx_t *sbctx)
+{
+	sbctx->buf = NULL;
+	sbctx->bufptr = 0;
+
+	sbctx->cacheptr = 0;
+}
+
+void nflushcache(sbctx_t *sbctx)
+{
+	sbctx->buf = realloc(sbctx->buf, sbctx->bufptr + sbctx->cacheptr + 1);
+	memcpy(sbctx->buf + sbctx->bufptr, sbctx->cache, sbctx->cacheptr);
+	sbctx->bufptr += sbctx->cacheptr;
+	sbctx->cacheptr = 0;
+}
+
+// バッファへ追記
+void nputbuf(sbctx_t *sbctx, void *d, int l)
+{
+	// l > n * SBCTX_CACHESIZE (n > 1) でも勝手に再帰してくれる
+	if(l > SBCTX_CACHESIZE) {
+		nputbuf(sbctx, d, SBCTX_CACHESIZE);
+		nputbuf(sbctx, d + SBCTX_CACHESIZE, l - SBCTX_CACHESIZE);
+		return;
+	}
+
+	if(sbctx->cacheptr + l > SBCTX_CACHESIZE) {
+		nflushcache(sbctx);
+	}
+
+	memcpy(sbctx->cache + sbctx->cacheptr, d, l);
+	sbctx->cacheptr += l;
+}
+
 // アトリビュートON
 void nattron(sbctx_t *sbctx, int n)
 {
-	wattron(sbctx, n);
+	//wattron(sbctx, n);
 }
 
 // アトリビュートOFF
 void nattroff(sbctx_t *sbctx, int n)
 {
-	wattroff(sbctx, n);
+	//wattroff(sbctx, n);
 }
 
 // 1文字出力
 void naddch(sbctx_t *sbctx, int c)
 {
-	waddch(sbctx, c);
+	//waddch(sbctx, c);
+	nputbuf(sbctx, &c, 1);
 }
 
 // 文字列出力
 void naddstr(sbctx_t *sbctx, char *s)
 {
-	waddstr(sbctx, s);
+	//waddstr(sbctx, s);
+	nputbuf(sbctx, s, strlen(s));
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
@@ -292,7 +335,7 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	
 	naddstr(sbctx, "\n");
 
-	wrefresh(sbctx);
+	//wrefresh(scr);
 	
 	wmove(pad, pad_x, pad_y);
 	wrefresh(pad);
@@ -392,14 +435,14 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	}
 	
 	// 日付表示
-	date_w = ustrwidth(datebuf) + 1;
+	/*date_w = ustrwidth(datebuf) + 1;
 	getyx(sbctx,  y, x);
 	if (x < term_w - date_w) {
 		for(int i = 0; i < term_w - x - date_w; i++) naddstr(sbctx,  " ");
 	} else {
 		for(int i = 0; i < x - (term_w - date_w); i++) naddstr(sbctx,  "\b");
 		naddstr(sbctx,  "\b ");
-	}
+	}*/
 	nattron(sbctx,  COLOR_PAIR(5));
 	naddstr(sbctx,  datebuf);
 	nattroff(sbctx,  COLOR_PAIR(5));
@@ -507,7 +550,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	}
 	
 	naddstr(sbctx,  "\n");
-	wrefresh(scr);
+	//wrefresh(scr);
 	
 	wmove(pad, pad_x, pad_y);
 	wrefresh(pad);
@@ -541,7 +584,18 @@ void streaming_received(void)
 		if(stream_event_handler) {
 			sjson_context* ctx = sjson_create_context(0, 0, NULL);
 			struct sjson_node *jobj_from_string = sjson_decode(ctx, streaming_json + 6);
-			stream_event_handler((sbctx_t *)scr, jobj_from_string);
+
+			sbctx_t sb;
+			ninitbuf(&sb);
+
+			stream_event_handler(&sb, jobj_from_string);
+
+			nflushcache(&sb);
+			sb.buf[sb.bufptr] = 0;
+			waddstr(scr, (char *)sb.buf);
+			free(sb.buf);
+			wrefresh(scr);
+
 			sjson_destroy_context(ctx);
 			stream_event_handler = NULL;
 		}
@@ -942,7 +996,16 @@ void get_timeline(void)
 		for (int i = sjson_child_count(jobj_from_string) - 1; i >= 0; i--) {
 			struct sjson_node *obj = sjson_find_element(jobj_from_string, i);
 			
-			stream_event_update(scr, obj);
+			sbctx_t sb;
+			ninitbuf(&sb);
+
+			stream_event_update(&sb, obj);
+
+			nflushcache(&sb);
+			sb.buf[sb.bufptr] = 0;
+			waddstr(scr, (char *)sb.buf);
+			free(sb.buf);
+			wrefresh(scr);
 		}
 	}
 	
