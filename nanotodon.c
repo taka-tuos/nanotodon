@@ -707,6 +707,7 @@ void *stream_thread_func(void *param)
 	return NULL;
 }
 
+/*
 // <stb_textedit用宣言>
 
 #define STB_TEXTEDIT_CHARTYPE   wchar_t
@@ -787,7 +788,7 @@ int insert_chars(STB_TEXTEDIT_STRING *str, int pos, STB_TEXTEDIT_CHARTYPE *newte
 #include "stb_textedit.h"
 
 // </stb_textedit用宣言>
-
+*/
 // インスタンスにクライアントを登録する
 void do_create_client(char *domain, char *dot_ckcs)
 {
@@ -1305,13 +1306,13 @@ retry1:
 	// ストリーミングスレッド生成
 	pthread_create(&stream_thread, NULL, stream_thread_func, NULL);
 	
-	STB_TexteditState state;
-	text_control txt;
+	//STB_TexteditState state;
+	//text_control txt;
 
-	txt.string = 0;
-	txt.stringlen = 0;
+	//txt.string = 0;
+	//txt.stringlen = 0;
 
-	stb_textedit_initialize_state(&state, 0);
+	//stb_textedit_initialize_state(&state, 0);
 	
 	keypad(pad, TRUE);
 	noecho();
