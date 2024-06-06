@@ -67,10 +67,10 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *);
 void stream_event_notify(sbctx_t *sbctx, struct sjson_node *);
 
 // タイムラインWindow
-WINDOW *scr;
+//WINDOW *scr;
 
 // 投稿欄Window
-WINDOW *pad;
+//WINDOW *pad;
 
 // アクセストークン文字列
 char access_token[256];
@@ -392,8 +392,8 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 
 	//wrefresh(scr);
 	
-	wmove(pad, pad_x, pad_y);
-	wrefresh(pad);
+	/*wmove(pad, pad_x, pad_y);
+	wrefresh(pad);*/
 }
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
@@ -607,8 +607,8 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	naddstr(sbctx,  "\n");
 	//wrefresh(scr);
 	
-	wmove(pad, pad_x, pad_y);
-	wrefresh(pad);
+	/*wmove(pad, pad_x, pad_y);
+	wrefresh(pad);*/
 }
 
 // ストリーミングで受信したJSON(接続維持用データを取り除き一体化したもの)
@@ -1289,14 +1289,14 @@ retry1:
 	getmaxyx(term, term_h, term_w);
 	
 	// TL用Window
-	scr = newwin(term_h - 6, term_w, 6, 0);
+	//scr = newwin(term_h, term_w, 0, 0);
 	
 	// 投稿欄用Window
-	pad = newwin(5, term_w, 0, 0);
+	//pad = newwin(5, term_w, 0, 0);
 	
-	scrollok(scr, 1);
+	scrollok(stdscr, 1);
 	
-	wrefresh(scr);
+	wrefresh(stdscr);
 	
 	pthread_mutex_init(&queue_mutex, NULL);
 	queue_head = queue_num = 0;
@@ -1314,14 +1314,14 @@ retry1:
 
 	//stb_textedit_initialize_state(&state, 0);
 	
-	keypad(pad, TRUE);
-	noecho();
+	//keypad(pad, TRUE);
+	//noecho();
 	
 	// 投稿欄との境目の線
-	attron(COLOR_PAIR(2));
+	/*attron(COLOR_PAIR(2));
 	for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
 	attroff(COLOR_PAIR(2));
-	refresh();
+	refresh();*/
 	
 	/*mvaddch(0, term_w/2, '[');
 	attron(COLOR_PAIR(1));
@@ -1343,9 +1343,9 @@ retry1:
 		sbctx_t sb;
 		if(!squeue_dequeue(&sb)) {
 			sb.buf[sb.bufptr] = 0;
-			waddstr(scr, (char *)sb.buf);
+			waddstr(stdscr, (char *)sb.buf);
 			free(sb.buf);
-			wrefresh(scr);
+			wrefresh(stdscr);
 		}
 		const struct timespec req = {0, 10 * 1000000};
 		nanosleep(&req, NULL);
