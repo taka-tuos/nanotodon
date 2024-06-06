@@ -247,7 +247,9 @@ void stream_event_notify(struct sjson_node *jobj_from_string)
 	
 	// dname(display_name)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
-		wprintw(scr, " (%s)", dname);
+		waddstr(scr, " (");
+		waddstr(scr, dname);
+		waddstr(scr, ")");
 	}
 	waddstr(scr, "\n");
 	wattroff(scr, COLOR_PAIR(4));
@@ -312,7 +314,11 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 		waddstr(scr, "Reblog by ");
 		waddstr(scr, sname);
 		// dname(表示名)が空の場合は括弧を表示しない
-		if (dname[0] != '\0') wprintw(scr, " (%s)", dname);
+		if (dname[0] != '\0') {
+			waddstr(scr, " (");
+			waddstr(scr, dname);
+			waddstr(scr, ")");
+		}
 		waddstr(scr, "\n");
 		wattroff(scr, COLOR_PAIR(3));
 		stream_event_update(reblog);
@@ -327,7 +333,9 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 	// dname(表示名)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
 		wattron(scr, COLOR_PAIR(2));
-		wprintw(scr, " (%s)", dname);
+		waddstr(scr, " (");
+		waddstr(scr, dname);
+		waddstr(scr, ")");
 		wattroff(scr, COLOR_PAIR(2));
 	}
 	
