@@ -1,40 +1,40 @@
 # nanotodon
 CLI Mastodon Client
 
-# WARN
+# 注意
 現在かなり大規模に開発中です。安定利用はできない可能性があります
 
-# Depended library
+# 依存ライブラリ
 - cURL
 - pthread
 
-# Build
-## *BSD with pkgsrc
+# ビルド
+## pkgsrc環境
 ```CFLAGS="-I/usr/pkg/include" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make```
 
-## Else
+## その他
 ```make```
 
-# Options
+# オプション
 - ```-mono```  
-  - Disable Color (for 1bpp framebuffer)
+  - 色付け無効化(太字のみ有効)(for 1bpp framebuffer)
 
 - ```-unlock```  
-  - Show PRIVATE/DIRECT toots.
+  - 公開範囲が PRIVATE/DIRECT の投稿を表示する
 
 - ```-noemoji```  
-  - Disable emojis in UI.
+  - ReblogやFavourite、公開範囲表示などのUI要素に絵文字を利用しない
 
 - ```-profile <name>```  
-  - Use profile <name>.
+  - プロファイル ``<name>`` を利用する
 
 - ```-timeline <public|local|home>```  
-  - Select timeline(WIP, streaming on local/public may not work).
+  - (WIP)流すタイムラインの選択
 
-# Guide
+# 利用ガイド
 TBW  
 
-# ~~Tested environments(outdated)~~
+# ~~テスト済み環境(outdated)~~
 - ~~NetBSD/luna68k + mlterm~~
 - ~~NetBSD/x68k + mlterm~~
 - ~~NetBSD/sun3 + mlterm~~
@@ -44,4 +44,4 @@ TBW
 - ~~WSL1 + Windows Terminal~~
 
 # Thanks
-- septag : author of sjson.h (https://github.com/septag/sjson)
+- septag : sjson.h (https://github.com/septag/sjson)
