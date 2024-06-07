@@ -281,12 +281,40 @@ init_pair(5, COLOR_BLUE, -1);
 // アトリビュートON
 void nattron(sbctx_t *sbctx, int n)
 {
+	if(n & A_BOLD) nputbuf(sbctx, "\e[1m", 4);
+	
+	if(monoflag) return;
+
+	if((n & 7) > 0 && (n & 7) < 5) {
+		switch(n & 7){
+			case 1:
+			nputbuf(sbctx, "\e[32m", 5);
+			break;
+
+			case 2:
+			nputbuf(sbctx, "\e[36m", 5);
+			break;
+
+			case 3:
+			nputbuf(sbctx, "\e[33m", 5);
+			break;
+
+			case 4:
+			nputbuf(sbctx, "\e[31m", 5);
+			break;
+
+			case 5:
+			nputbuf(sbctx, "\e[34m", 5);
+			break;
+		}
+	}
 	//wattron(sbctx, n);
 }
 
 // アトリビュートOFF
 void nattroff(sbctx_t *sbctx, int n)
 {
+	nputbuf(sbctx, "\e[0m", 4);
 	//wattroff(sbctx, n);
 }
 
