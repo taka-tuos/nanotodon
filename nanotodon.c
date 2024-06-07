@@ -7,8 +7,6 @@
 #include <ctype.h>  // isspace
 #include <locale.h> // setlocale
 #include <sys/time.h>
-#include <curses.h>
-#include <ncurses.h>
 #include <pthread.h>
 #include "config.h"
 #include "messages.h"
@@ -138,7 +136,7 @@ int ustrwidth(const char *str)
 void curl_fatal(CURLcode ret, const char *errbuf)
 {
 	size_t len = strlen(errbuf);
-	endwin();
+	//endwin();
 	fprintf(stderr, "\n");
 	if(len>0) {
 		fprintf(stderr, "%s%s", errbuf, errbuf[len-1]!='\n' ? "\n" : "");
@@ -266,6 +264,19 @@ void nputbuf(sbctx_t *sbctx, void *d, int l)
 	memcpy(sbctx->cache + sbctx->cacheptr, d, l);
 	sbctx->cacheptr += l;
 }
+
+#define COLOR_PAIR(n) (n)
+#define A_BOLD 0x80
+
+/*
+MEMO :
+
+init_pair(1, COLOR_GREEN, -1);
+init_pair(2, COLOR_CYAN, -1);
+init_pair(3, COLOR_YELLOW, -1);
+init_pair(4, COLOR_RED, -1);
+init_pair(5, COLOR_BLUE, -1);
+*/
 
 // アトリビュートON
 void nattron(sbctx_t *sbctx, int n)
@@ -708,8 +719,7 @@ void *prompt_thread_func(void *param)
 {
 	while(1) {
 		if(prompt_notify == 0) {
-			wchar_t c;
-			wget_wch(stdscr, &c);
+			int c = getchar();
 
 			if(c == '/') {
 				prompt_notify = '/';
@@ -1198,32 +1208,6 @@ retry1:
 	
 	setlocale(LC_ALL, "");
 	
-	WINDOW *term = initscr();
-	
-	start_color();
-	
-	use_default_colors();
-
-	if(!monoflag) {
-		init_pair(1, COLOR_GREEN, -1);
-		init_pair(2, COLOR_CYAN, -1);
-		init_pair(3, COLOR_YELLOW, -1);
-		init_pair(4, COLOR_RED, -1);
-		init_pair(5, COLOR_BLUE, -1);
-	} else {
-		init_pair(1, -1, -1);
-		init_pair(2, -1, -1);
-		init_pair(3, -1, -1);
-		init_pair(4, -1, -1);
-		init_pair(5, -1, -1);
-	}
-	
-	getmaxyx(term, term_h, term_w);
-	
-	scrollok(stdscr, 1);
-	
-	wrefresh(stdscr);
-	
 	pthread_mutex_init(&queue_mutex, NULL);
 	pthread_mutex_init(&prompt_mutex, NULL);
 	queue_head = queue_num = 0;
@@ -1240,22 +1224,14 @@ retry1:
 		sbctx_t sb;
 		// queueに来ていたら表示する
 		if(!squeue_dequeue(&sb)) {
-			sb.buf[sb.bufptr] = 0;
-			waddstr(stdscr, (char *)sb.buf);
+			fwrite(sb.buf, sb.bufptr, 1, stdout);
 			free(sb.buf);
-			wrefresh(stdscr);
 		}
 
 		// プロンプト通知が来てたらtoot処理
 		if(prompt_notify != 0) {
-			wchar_t wstatus[1024];
 			char status[1024];
-			wgetn_wstr(stdscr, wstatus, 1024);
-
-			waddstr(stdscr, "\n");
-			wrefresh(stdscr);
-
-			wcstombs(status, wstatus, 1024);
+			fgets(status, 1024, stdin);
 
 			char status2[1024];
 			char *p1 = status, *p2 = status2;
