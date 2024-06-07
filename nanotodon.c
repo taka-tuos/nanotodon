@@ -76,8 +76,6 @@ char domain_string[256];
 // コンフィグファイルパス構造体
 struct nanotodon_config config;
 
-int term_w, term_h;
-int pad_x = 0, pad_y = 0;
 int monoflag = 0;
 int hidlckflag = 1;
 int noemojiflag = 0;
@@ -526,14 +524,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	}
 	
 	// 日付表示
-	/*date_w = ustrwidth(datebuf) + 1;
-	getyx(sbctx,  y, x);
-	if (x < term_w - date_w) {
-		for(int i = 0; i < term_w - x - date_w; i++) naddstr(sbctx,  " ");
-	} else {
-		for(int i = 0; i < x - (term_w - date_w); i++) naddstr(sbctx,  "\b");
-		naddstr(sbctx,  "\b ");
-	}*/
+	naddstr(sbctx,  " - ");
 	nattron(sbctx,  COLOR_PAIR(5));
 	naddstr(sbctx,  datebuf);
 	nattroff(sbctx,  COLOR_PAIR(5));
@@ -627,8 +618,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		if(type != SJSON_NULL) {
 			int l = ustrwidth(application_name->string_);
 		
-			// 右寄せにするために空白を並べる
-			for(int i = 0; i < term_w - (l + 4 + 1); i++) naddstr(sbctx,  " ");
+			naddstr(sbctx,  " - ");
 			
 			nattron(sbctx,  COLOR_PAIR(1));
 			naddstr(sbctx,  "via ");
