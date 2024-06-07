@@ -22,7 +22,7 @@ CLI Mastodon Client
  - Draw as monochrome mode.
 
 - ```-unlock```  
-- Show UNLISTED/PRIVATE/DIRECT toots.
+- Show PRIVATE/DIRECT toots.
 
 - ```-noemoji```  
 - Remove emojis from UI.
