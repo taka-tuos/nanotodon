@@ -9,7 +9,7 @@ LDLIBS += -lcurl -lpthread -lm
 default : $(TARGET)
 
 # rules
-$(TARGET) : $(OBJS) Makefile Makefile.in
+$(TARGET) : $(OBJS) Makefile
 	$(CC) -o $(TARGET) $(OBJS) $(LDFLAGS) $(LDLIBS) 
 	
 # commands
