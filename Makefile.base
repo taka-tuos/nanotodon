@@ -1,5 +1,5 @@
 TARGET		= nanotodon
-OBJS_TARGET	= nanotodon.o config.o messages.o
+OBJS_TARGET	= nanotodon.o sbuf.o squeue.o utils.o config.o messages.o
 
 CFLAGS = -g
 # optimization

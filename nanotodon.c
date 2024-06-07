@@ -8,11 +8,15 @@
 #include <locale.h> // setlocale
 #include <sys/time.h>
 #include <pthread.h>
-#include "config.h"
-#include "messages.h"
 
 #define SJSON_IMPLEMENT
 #include "sjson.h"
+
+#include "config.h"
+#include "messages.h"
+#include "sbuf.h"
+#include "squeue.h"
+#include "utils.h"
 
 char *streaming_json = NULL;
 
@@ -23,22 +27,6 @@ char *selected_stream = "user";
 char *selected_timeline = "home";
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
-
-// String Bufferの型定義
-#define SBCTX_CACHESIZE 512
-typedef struct {
-	char *buf;
-	int bufptr;
-	char cache[SBCTX_CACHESIZE];
-	int cacheptr;
-} sbctx_t;
-
-
-#define QUEUE_SIZE 512
-sbctx_t queue_data[QUEUE_SIZE];
-pthread_mutex_t queue_mutex;
-int queue_head;
-int queue_num;
 
 pthread_mutex_t prompt_mutex;
 int prompt_notify = 0;
@@ -80,121 +68,6 @@ int monoflag = 0;
 int hidlckflag = 1;
 int noemojiflag = 0;
 
-// Unicode文字列の幅を返す(半角文字=1)
-int ustrwidth(const char *str)
-{
-	int size, width, strwidth;
-
-	strwidth = 0;
-	while (*str != '\0') {
-		uint8_t c;
-		c = (uint8_t)*str;
-		if (c >= 0x00 && c <= 0x7f) {
-			size  = 1;
-			width = 1;
-		} else if (c >= 0xc2 && c <= 0xdf) {
-			size  = 2;
-			width = 2;
-		} else if (c == 0xef) {
-			uint16_t p;
-			p = ((uint8_t)str[1] << 8) | (uint8_t)str[2];
-			size  = 3;
-			if (p >= 0xbda1 && p <= 0xbe9c) {
-				/* Halfwidth CJK punctuation */
-				/* Halfwidth Katakana variants */
-				/* Halfwidth Hangul variants */
-				width = 1;
-			} else if (p >= 0xbfa8 && p <= 0xbfae) {
-				/* Halfwidth symbol variants */
-				width = 1;
-			} else {
-				/* other BMP */
-				width = 2;
-			}
-		} else if ((c & 0xf0) == 0xe0) {
-			/* other BMP */
-			size  = 3;
-			width = 2;
-		} else if ((c & 0xf8) == 0xf0) {
-			/* Emoji etc. */
-			size  = 4;
-			width = 2;
-		} else {
-			/* unexpected */
-			size  = 1;
-			width = 1;
-		}
-		strwidth += width;
-		str += size;
-	}
-	return strwidth;
-}
-
-// curlのエラーを表示
-void curl_fatal(CURLcode ret, const char *errbuf)
-{
-	size_t len = strlen(errbuf);
-	//endwin();
-	fprintf(stderr, "\n");
-	if(len>0) {
-		fprintf(stderr, "%s%s", errbuf, errbuf[len-1]!='\n' ? "\n" : "");
-	}else{
-		fprintf(stderr, "%s\n", curl_easy_strerror(ret));
-	}
-	exit(EXIT_FAILURE);
-} 
-
-// domain_stringとapiエンドポイントを合成してURLを生成する
-char *create_uri_string(char *api)
-{
-	char *s = malloc(256);
-	sprintf(s, "https://%s/%s", domain_string, api);
-	return s;
-}
-
-// jsonツリーをパス形式(ex. "account/display_name")で掘ってjson_objectを取り出す
-int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **dst)
-{
-	char *dup = strdup(path);	// strtokは破壊するので複製
-	struct sjson_node *dir = obj;
-	int exist = 1;
-	char *next_key;
-	char last_key[256];
-	
-	char *tok = dup;
-	
-	// 現在地ノードが存在する限りループ
-	while(exist) {
-		// 次のノード名を取り出す
-		next_key = strtok(tok, "/");
-		tok = NULL;
-		
-		// パスの終端(=目的のオブジェクトに到達している)ならループを抜ける
-		if(!next_key) break;
-		strcpy(last_key, next_key);
-		
-		// 次のノードを取得する
-
-		struct sjson_node *next = sjson_find_member(dir, next_key);
-
-		exist = next != 0 ? 1 : 0;
-
-		if(exist) {
-			// 存在しているので現在地ノードを更新
-			dir = next;
-		}
-	}
-	
-	// strtok用バッファ解放
-	free(dup);
-	
-	// 現在地を結果ポインタに代入
-	*dst = dir;
-	
-	// 見つかったかどうかを返却
-	return exist;
-}
-
 // curlから呼び出されるストリーミング受信関数
 size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	if (size * nmemb == 0)
@@ -226,155 +99,6 @@ size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	}
 
 	return realsize;
-}
-
-// Stringバッファ初期化
-void ninitbuf(sbctx_t *sbctx)
-{
-	sbctx->buf = NULL;
-	sbctx->bufptr = 0;
-
-	sbctx->cacheptr = 0;
-}
-
-void nflushcache(sbctx_t *sbctx)
-{
-	sbctx->buf = realloc(sbctx->buf, sbctx->bufptr + sbctx->cacheptr + 1);
-	memcpy(sbctx->buf + sbctx->bufptr, sbctx->cache, sbctx->cacheptr);
-	sbctx->bufptr += sbctx->cacheptr;
-	sbctx->cacheptr = 0;
-}
-
-// バッファへ追記
-void nputbuf(sbctx_t *sbctx, void *d, int l)
-{
-	// l > n * SBCTX_CACHESIZE (n > 1) でも勝手に再帰してくれる
-	if(l > SBCTX_CACHESIZE) {
-		nputbuf(sbctx, d, SBCTX_CACHESIZE);
-		nputbuf(sbctx, d + SBCTX_CACHESIZE, l - SBCTX_CACHESIZE);
-		return;
-	}
-
-	if(sbctx->cacheptr + l > SBCTX_CACHESIZE) {
-		nflushcache(sbctx);
-	}
-
-	memcpy(sbctx->cache + sbctx->cacheptr, d, l);
-	sbctx->cacheptr += l;
-}
-
-#define COLOR_PAIR(n) (n)
-#define A_BOLD 0x80
-
-/*
-MEMO :
-
-init_pair(1, COLOR_GREEN, -1);
-init_pair(2, COLOR_CYAN, -1);
-init_pair(3, COLOR_YELLOW, -1);
-init_pair(4, COLOR_RED, -1);
-init_pair(5, COLOR_BLUE, -1);
-*/
-
-// アトリビュートON
-void nattron(sbctx_t *sbctx, int n)
-{
-	if(n & A_BOLD) nputbuf(sbctx, "\e[1m", 4);
-	
-	if(monoflag) return;
-
-	if((n & 7) > 0 && (n & 7) < 5) {
-		switch(n & 7){
-			case 1:
-			nputbuf(sbctx, "\e[32m", 5);
-			break;
-
-			case 2:
-			nputbuf(sbctx, "\e[36m", 5);
-			break;
-
-			case 3:
-			nputbuf(sbctx, "\e[33m", 5);
-			break;
-
-			case 4:
-			nputbuf(sbctx, "\e[31m", 5);
-			break;
-
-			case 5:
-			nputbuf(sbctx, "\e[34m", 5);
-			break;
-		}
-	}
-	//wattron(sbctx, n);
-}
-
-// アトリビュートOFF
-void nattroff(sbctx_t *sbctx, int n)
-{
-	nputbuf(sbctx, "\e[0m", 4);
-	//wattroff(sbctx, n);
-}
-
-// 1文字出力
-void naddch(sbctx_t *sbctx, int c)
-{
-	//waddch(sbctx, c);
-	nputbuf(sbctx, &c, 1);
-}
-
-// 文字列出力
-void naddstr(sbctx_t *sbctx, char *s)
-{
-	//waddstr(sbctx, s);
-	nputbuf(sbctx, s, strlen(s));
-}
-
-int squeue_enqueue(sbctx_t enq_data)
-{
-	int ret = 0;
-
-	pthread_mutex_lock(&queue_mutex);
-	//waddstr(scr, "en_lock");
-	//wrefresh(scr);
-	
-    if (queue_num < QUEUE_SIZE) {
-        queue_data[(queue_head + queue_num) % QUEUE_SIZE] = enq_data;
-        queue_num++;
-        ret = 0;
-    } else {
-        ret = 1;
-    }
-
-	//waddstr(scr, "en_unlock");
-	//wrefresh(scr);
-	pthread_mutex_unlock(&queue_mutex);
-
-	return ret;
-}
-
-int squeue_dequeue(sbctx_t *deq_data)
-{
-	int ret = 0;
-
-	pthread_mutex_lock(&queue_mutex);
-	//waddstr(scr, "de_lock");
-	//wrefresh(scr);
-
-    if (queue_num > 0) {
-        *deq_data = queue_data[queue_head];
-        queue_head = (queue_head + 1) % QUEUE_SIZE;
-        queue_num--;
-        ret = 0;
-    } else {
-        ret = 1;
-    }
-
-	//waddstr(scr, "de_unlock");
-	//wrefresh(scr);
-	pthread_mutex_unlock(&queue_mutex);
-
-	return ret;
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
@@ -1029,31 +753,6 @@ void get_timeline(void)
 	slist1 = NULL;
 }
 
-sjson_node *read_json_from_file(char *path, char **json_p, sjson_context **ctx_p)
-{
-	char *json;
-	FILE *f = fopen(path, "rb");
-
-	fseek(f, 0, SEEK_END);
-	long fsize = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	json = malloc(fsize + 1);
-	*json_p = json;
-
-	fread(json, fsize, 1, f);
-	fclose(f);
-
-	json[fsize] = 0;
-
-	sjson_context* ctx = sjson_create_context(0, 0, NULL);
-	*ctx_p = ctx;
-
-	struct sjson_node *jobj_from_string = sjson_decode(ctx, json);
-
-	return jobj_from_string;
-}
-
 // メイン関数
 int main(int argc, char *argv[])
 {
@@ -1226,9 +925,8 @@ retry1:
 	
 	setlocale(LC_ALL, "");
 	
-	pthread_mutex_init(&queue_mutex, NULL);
 	pthread_mutex_init(&prompt_mutex, NULL);
-	queue_head = queue_num = 0;
+	squeue_init();
 
 	pthread_t stream_thread;
 	pthread_t prompt_thread;
