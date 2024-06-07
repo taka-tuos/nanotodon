@@ -461,10 +461,10 @@ void *prompt_thread_func(void *param)
 {
 	while(1) {
 		if(prompt_notify == 0) {
-			int c = getchar();
+			int c = fgetc(stdin);
 
-			if(c == '/') {
-				prompt_notify = '/';
+			if(c == '\n') {
+				prompt_notify = 1;
 			}
 		} else {
 			const struct timespec req = {0, 100 * 1000000};
@@ -946,6 +946,7 @@ retry1:
 
 		// プロンプト通知が来てたらtoot処理
 		if(prompt_notify != 0) {
+			fputs("> ", stdout);
 			char status[1024];
 			fgets(status, 1024, stdin);
 
