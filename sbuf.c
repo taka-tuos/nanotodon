@@ -22,7 +22,7 @@ void nflushcache(sbctx_t *sbctx)
 }
 
 // バッファへ追記
-void nputbuf(sbctx_t *sbctx, void *d, int l)
+void nputbuf(sbctx_t *sbctx, const void *d, int l)
 {
 	// l > n * SBCTX_CACHESIZE (n > 1) でも勝手に再帰してくれる
 	if(l > SBCTX_CACHESIZE) {
@@ -97,7 +97,7 @@ void naddch(sbctx_t *sbctx, int c)
 }
 
 // 文字列出力
-void naddstr(sbctx_t *sbctx, char *s)
+void naddstr(sbctx_t *sbctx, const char *s)
 {
 	//waddstr(sbctx, s);
 	nputbuf(sbctx, s, strlen(s));
