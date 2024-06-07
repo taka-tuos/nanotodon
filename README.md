@@ -8,37 +8,31 @@ CLI Mastodon Client
 - cURL
 - pthread
 
-# How to build
-## If you're using *BSD with pkgsrc
-```make -f Makefile.bsd```
+# Build
+## *BSD with pkgsrc
+```CFLAGS="-I/usr/pkg/include" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make```
 
 ## Else
 ```make```
 
-
 # Options
-
 - ```-mono```  
- - Draw as monochrome mode.
+  - Disable Color (for 1bpp framebuffer)
 
 - ```-unlock```  
-- Show PRIVATE/DIRECT toots.
+  - Show PRIVATE/DIRECT toots.
 
 - ```-noemoji```  
-- Remove emojis from UI.
+  - Disable emojis in UI.
 
 - ```-profile <name>```  
-- Use profile <name>.
+  - Use profile <name>.
 
 - ```-timeline <public|local|home>```  
-- Select timeline(WIP, streaming on local/public may not work).
+  - Select timeline(WIP, streaming on local/public may not work).
 
-# Tips
-## How to UNLISTED toot
-```/unlisted <your funny toot here>```
-
-## How to PRIVATE toot
-```/private <your funny toot here>```
+# Guide
+TBW  
 
 # ~~Tested environments(outdated)~~
 - ~~NetBSD/luna68k + mlterm~~
