@@ -69,12 +69,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *);
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
 void stream_event_notify(sbctx_t *sbctx, struct sjson_node *);
 
-// タイムラインWindow
-//WINDOW *scr;
-
-// 投稿欄Window
-//WINDOW *pad;
-
 // アクセストークン文字列
 char access_token[256];
 
@@ -727,88 +721,6 @@ void *prompt_thread_func(void *param)
 	}
 }
 
-/*
-// <stb_textedit用宣言>
-
-#define STB_TEXTEDIT_CHARTYPE   wchar_t
-#define STB_TEXTEDIT_STRING     text_control
-
-// get the base type
-#include "stb_textedit.h"
-
-// define our editor structure
-typedef struct
-{
-	wchar_t *string;
-	int stringlen;
-} text_control;
-
-// define the functions we need
-void layout_func(StbTexteditRow *row, STB_TEXTEDIT_STRING *str, int start_i)
-{
-	int remaining_chars = str->stringlen - start_i;
-	row->num_chars = remaining_chars > 20 ? 20 : remaining_chars; // should do real word wrap here
-	row->x0 = 0;
-	row->x1 = 20; // need to account for actual size of characters
-	row->baseline_y_delta = 1.25;
-	row->ymin = -1;
-	row->ymax = 0;
-}
-
-int delete_chars(STB_TEXTEDIT_STRING *str, int pos, int num)
-{
-	memmove(&str->string[pos], &str->string[pos + num], (str->stringlen - (pos + num)) * sizeof(wchar_t));
-	str->stringlen -= num;
-	return 1;
-}
-
-int insert_chars(STB_TEXTEDIT_STRING *str, int pos, STB_TEXTEDIT_CHARTYPE *newtext, int num)
-{
-	str->string = (wchar_t *)realloc(str->string, (str->stringlen + num) * sizeof(wchar_t));
-	memmove(&str->string[pos + num], &str->string[pos], (str->stringlen - pos) * sizeof(wchar_t));
-	memcpy(&str->string[pos], newtext, (num) * sizeof(wchar_t));
-	str->stringlen += num;
-	return 1;
-}
-
-// define all the #defines needed 
-
-#define STB_TEXTEDIT_STRINGLEN(tc)     ((tc)->stringlen)
-#define STB_TEXTEDIT_LAYOUTROW         layout_func
-#define STB_TEXTEDIT_GETWIDTH(tc,n,i)  (1) // quick hack for monospaced
-#define STB_TEXTEDIT_KEYTOTEXT(key)    (key)
-#define STB_TEXTEDIT_GETCHAR(tc,i)     ((tc)->string[i])
-#define STB_TEXTEDIT_NEWLINE           '\n'
-#define STB_TEXTEDIT_IS_SPACE(ch)      isspace(ch)
-#define STB_TEXTEDIT_DELETECHARS       delete_chars
-#define STB_TEXTEDIT_INSERTCHARS       insert_chars
-
-#define STB_TEXTEDIT_K_SHIFT           0xffff0100
-#define STB_TEXTEDIT_K_CONTROL         0xffff0200
-#define STB_TEXTEDIT_K_LEFT            KEY_LEFT
-#define STB_TEXTEDIT_K_RIGHT           KEY_RIGHT
-#define STB_TEXTEDIT_K_UP              KEY_UP
-#define STB_TEXTEDIT_K_DOWN            KEY_DOWN
-#define STB_TEXTEDIT_K_LINESTART       KEY_HOME
-#define STB_TEXTEDIT_K_LINEEND         KEY_END
-#define STB_TEXTEDIT_K_TEXTSTART       KEY_SHOME
-#define STB_TEXTEDIT_K_TEXTEND         KEY_SEND
-#define STB_TEXTEDIT_K_DELETE          KEY_DC
-#define STB_TEXTEDIT_K_BACKSPACE       0x7f
-#define STB_TEXTEDIT_K_BACKSPACE_ALT   0x107
-#define STB_TEXTEDIT_K_UNDO            KEY_UNDO
-#define STB_TEXTEDIT_K_REDO            KEY_REDO
-#define STB_TEXTEDIT_K_INSERT          0xffff0400
-#define STB_TEXTEDIT_K_WORDLEFT        0xffff0800
-#define STB_TEXTEDIT_K_WORDRIGHT       0xffff1000
-#define STB_TEXTEDIT_K_PGUP            KEY_PPAGE
-#define STB_TEXTEDIT_K_PGDOWN          KEY_NPAGE
-
-#define STB_TEXTEDIT_IMPLEMENTATION
-#include "stb_textedit.h"
-
-// </stb_textedit用宣言>
-*/
 // インスタンスにクライアントを登録する
 void do_create_client(char *domain, char *dot_ckcs)
 {
@@ -1308,12 +1220,6 @@ retry1:
 	
 	getmaxyx(term, term_h, term_w);
 	
-	// TL用Window
-	//scr = newwin(term_h, term_w, 0, 0);
-	
-	// 投稿欄用Window
-	//pad = newwin(5, term_w, 0, 0);
-	
 	scrollok(stdscr, 1);
 	
 	wrefresh(stdscr);
@@ -1329,41 +1235,10 @@ retry1:
 	pthread_create(&stream_thread, NULL, stream_thread_func, NULL);
 	pthread_create(&prompt_thread, NULL, prompt_thread_func, NULL);
 	
-	//STB_TexteditState state;
-	//text_control txt;
-
-	//txt.string = 0;
-	//txt.stringlen = 0;
-
-	//stb_textedit_initialize_state(&state, 0);
-	
-	//keypad(pad, TRUE);
-	//noecho();
-	
-	// 投稿欄との境目の線
-	/*attron(COLOR_PAIR(2));
-	for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
-	attroff(COLOR_PAIR(2));
-	refresh();*/
-	
-	/*mvaddch(0, term_w/2, '[');
-	attron(COLOR_PAIR(1));
-	addstr("toot欄(escで投稿)");
-	attroff(COLOR_PAIR(1));
-	mvaddch(0, term_w-1, ']');
-	mvaddch(0, 0, '[');
-	attron(COLOR_PAIR(2));
-	addstr("Timeline(");
-	addstr(URI);
-	addstr(")");
-	attroff(COLOR_PAIR(2));
-	mvaddch(0, term_w/2-1, ']');
-	refresh();
-	wmove(pad, 0, 0);*/
-	
 	while (1)
 	{
 		sbctx_t sb;
+		// queueに来ていたら表示する
 		if(!squeue_dequeue(&sb)) {
 			sb.buf[sb.bufptr] = 0;
 			waddstr(stdscr, (char *)sb.buf);
@@ -1371,6 +1246,7 @@ retry1:
 			wrefresh(stdscr);
 		}
 
+		// プロンプト通知が来てたらtoot処理
 		if(prompt_notify != 0) {
 			wchar_t wstatus[1024];
 			char status[1024];
@@ -1404,70 +1280,10 @@ retry1:
 			do_toot(status2);
 			prompt_notify = 0;
 		} else {
+			// あまり短いと謎マシンが死ぬので100ms
 			const struct timespec req = {0, 100 * 1000000};
 			nanosleep(&req, NULL);
 		}
-		/*wchar_t c;
-		wget_wch(pad, &c);
-		if(c == KEY_RESIZE) {
-			// リサイズ処理
-			getmaxyx(term, term_h, term_w);
-			
-			// 境目の線再描画
-			attron(COLOR_PAIR(2));
-			for(int i = 0; i < term_w; i++) mvaddch(5, i, '-');
-			attroff(COLOR_PAIR(2));
-			refresh();
-			
-			// Windowリサイズ
-			werase(scr);
-			wresize(scr, term_h - 6, term_w);
-			wresize(pad, 5, term_w);
-			
-			// TL再取得
-			get_timeline();
-			
-			wrefresh(pad);
-			wrefresh(scr);
-		} else if(c == 0x1b && txt.string) {
-			// 投稿処理
-			werase(pad);
-			wchar_t *text = malloc(sizeof(wchar_t) * (txt.stringlen + 1));
-			memcpy(text, txt.string, sizeof(wchar_t) * txt.stringlen);
-			text[txt.stringlen] = 0;
-			char status[1024];
-			wcstombs(status, text, 1024);
-			do_toot(status);
-			free(text);
-			txt.string = 0;
-			txt.stringlen = 0;
-		} else {
-			// 通常文字
-			stb_textedit_key(&txt, &state, c);
-		}
-		
-		// 投稿欄内容表示
-		werase(pad);
-		wmove(pad, 0, 0);
-		int cx=-1, cy=-1;
-		for(int i = 0; i < txt.stringlen; i++) {
-			if(i == state.cursor) getyx(pad, cx, cy);
-			wchar_t s[2];
-			char mb[8];
-			s[0] = txt.string[i];
-			s[1] = 0;
-			wcstombs(mb, s, 8);
-			waddstr(pad, mb);
-		}
-		if(cx>=0&&cy>=0) {
-			wmove(pad, cx, cy);
-			pad_x = cx;
-			pad_y = cy;
-		} else {
-			pad_x = 0;
-			pad_y = 0;
-		}
-		wrefresh(pad);*/
 	}
 
 	return 0;
