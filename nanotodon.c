@@ -42,6 +42,9 @@ pthread_mutex_t queue_mutex;
 int queue_head;
 int queue_num;
 
+pthread_mutex_t prompt_mutex;
+int prompt_notify = 0;
+
 // ストリーミングを受信する関数のポインタ
 void (*streaming_received_handler)(void);
 
@@ -707,6 +710,23 @@ void *stream_thread_func(void *param)
 	return NULL;
 }
 
+void *prompt_thread_func(void *param)
+{
+	while(1) {
+		if(prompt_notify == 0) {
+			wchar_t c;
+			wget_wch(stdscr, &c);
+
+			if(c == '/') {
+				prompt_notify = '/';
+			}
+		} else {
+			const struct timespec req = {0, 100 * 1000000};
+			nanosleep(&req, NULL);
+		}
+	}
+}
+
 /*
 // <stb_textedit用宣言>
 
@@ -1299,12 +1319,15 @@ retry1:
 	wrefresh(stdscr);
 	
 	pthread_mutex_init(&queue_mutex, NULL);
+	pthread_mutex_init(&prompt_mutex, NULL);
 	queue_head = queue_num = 0;
 
 	pthread_t stream_thread;
+	pthread_t prompt_thread;
 	
 	// ストリーミングスレッド生成
 	pthread_create(&stream_thread, NULL, stream_thread_func, NULL);
+	pthread_create(&prompt_thread, NULL, prompt_thread_func, NULL);
 	
 	//STB_TexteditState state;
 	//text_control txt;
@@ -1347,8 +1370,43 @@ retry1:
 			free(sb.buf);
 			wrefresh(stdscr);
 		}
-		const struct timespec req = {0, 10 * 1000000};
-		nanosleep(&req, NULL);
+
+		if(prompt_notify != 0) {
+			wchar_t wstatus[1024];
+			char status[1024];
+			wgetn_wstr(stdscr, wstatus, 1024);
+
+			waddstr(stdscr, "\n");
+			wrefresh(stdscr);
+
+			wcstombs(status, wstatus, 1024);
+
+			char status2[1024];
+			char *p1 = status, *p2 = status2;
+
+			for(;*p1 != 0; p1++, p2++) {
+				if(*p1 == '\\') {
+					if(p1[1] == '\\') {
+						*p2 = '\\';
+						p1++;
+					}
+					if(p1[1] == 'n') {
+						*p2 = '\n';
+						p1++;
+					} 
+				} else {
+					*p2 = *p1;
+				}
+			}
+
+			*p2 = 0;
+
+			do_toot(status2);
+			prompt_notify = 0;
+		} else {
+			const struct timespec req = {0, 100 * 1000000};
+			nanosleep(&req, NULL);
+		}
 		/*wchar_t c;
 		wget_wch(pad, &c);
 		if(c == KEY_RESIZE) {
