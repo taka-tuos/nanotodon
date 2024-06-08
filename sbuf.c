@@ -90,7 +90,7 @@ void nattroff(sbctx_t *sbctx, int n)
 }
 
 // 1文字出力
-void naddch(sbctx_t *sbctx, int c)
+void naddch(sbctx_t *sbctx, char c)
 {
 	//waddch(sbctx, c);
 	nputbuf(sbctx, &c, 1);
