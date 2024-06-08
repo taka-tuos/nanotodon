@@ -14,4 +14,4 @@ $(TARGET) : $(OBJS) Makefile
 	
 # commands
 clean :
-	-$(RM) *.o $(TARGET)
+	-rm *.o $(TARGET)
