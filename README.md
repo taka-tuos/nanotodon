@@ -12,6 +12,9 @@ CLI Mastodon Client
 ## pkgsrc環境
 ```CFLAGS="-I/usr/pkg/include" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make```
 
+## OpenBSD
+```CFLAGS="-I/usr/local/include -Wno-format-security" LDFLAGS="-L/usr/local/lib" make```
+
 ## その他
 ```make```
 
