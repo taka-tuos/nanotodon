@@ -164,7 +164,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	struct tm tm;
 	time_t time;
 	char datebuf[DATEBUFLEN];
-	int x, y, date_w;
 	if(!jobj_from_string) return;
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
@@ -224,7 +223,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	}
 	
 	if(strcmp(vstr, "public")) {
-		int vtyp = strcmp(vstr, "unlisted");
 		nattron(sbctx,  COLOR_PAIR(3)|A_BOLD);
 		naddstr(sbctx,  " ");
 		if(noemojiflag) {
@@ -340,8 +338,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		type = application_name->tag;
 		
 		if(type != SJSON_NULL) {
-			int l = ustrwidth(application_name->string_);
-		
 			naddstr(sbctx,  " - ");
 			
 			nattron(sbctx,  COLOR_PAIR(1));
