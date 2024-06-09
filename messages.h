@@ -10,4 +10,4 @@ enum {
 	NANO_MSG_NUM
 };
 
-extern char nano_msg_list[2][NANO_MSG_NUM][256];
+extern const char nano_msg_list[2][NANO_MSG_NUM][256];

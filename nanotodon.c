@@ -829,10 +829,10 @@ int main(int argc, char *argv[])
 		char domain[256];
 		char *ck;
 		char *cs;
-		printf(nano_msg_list[msg_lang][NANO_MSG_WELCOME]);
-		printf(nano_msg_list[msg_lang][NANO_MSG_WEL_FIRST]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_WELCOME]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_WEL_FIRST]);
 retry1:
-		printf(nano_msg_list[msg_lang][NANO_MSG_INPUT_DOMAIN]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_INPUT_DOMAIN]);
 		printf(">");
 		scanf("%255s", domain);
 		printf("\n");
@@ -871,7 +871,7 @@ retry1:
 		int r2 = read_json_fom_path(jobj_from_file, "client_secret", &cso);
 		if(!r1 || !r2) {
 			// もしおかしければ最初まで戻る
-			printf(nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_DOMAIN]);
+			printf("%s", nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_DOMAIN]);
 			remove(json_name);
 			remove(config.dot_domain);
 			goto retry1;
@@ -884,8 +884,8 @@ retry1:
 		
 		char code[256];
 		
-		printf(nano_msg_list[msg_lang][NANO_MSG_AUTHCATION]);
-		printf(nano_msg_list[msg_lang][NANO_MSG_OAUTH_URL]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_AUTHCATION]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_OAUTH_URL]);
 		
 		// 認証用URLを表示、コードを入力させる
 		printf("https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
@@ -904,7 +904,7 @@ retry1:
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
 		if(!r3) {
 			// もしおかしければ最初まで戻る
-			printf(nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_OAUTH]);
+			printf("%s", nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_OAUTH]);
 			remove(json_name);
 			remove(config.dot_domain);
 			remove(config.dot_token);
@@ -916,7 +916,7 @@ retry1:
 
 		// httpヘッダに添付する用の形式でコピーしておく
 		sprintf(access_token, "Authorization: Bearer %s", token->string_);
-		printf(nano_msg_list[msg_lang][NANO_MSG_FINISH]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_FINISH]);
 	}
 	
 	setlocale(LC_ALL, "");
