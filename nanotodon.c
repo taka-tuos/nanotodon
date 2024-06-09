@@ -116,7 +116,7 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	
 	// 通知種別を表示に流用するので先頭を大文字化
 	char *t = strdup(notify_type->string_);
-	t[0] = toupper(t[0]);
+	t[0] = toupper((int)(unsigned char)t[0]);
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
 	nattron(sbctx, COLOR_PAIR(4));
@@ -164,7 +164,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	struct tm tm;
 	time_t time;
 	char datebuf[DATEBUFLEN];
-	int x, y, date_w;
 	if(!jobj_from_string) return;
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
@@ -224,7 +223,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	}
 	
 	if(strcmp(vstr, "public")) {
-		int vtyp = strcmp(vstr, "unlisted");
 		nattron(sbctx,  COLOR_PAIR(3)|A_BOLD);
 		naddstr(sbctx,  " ");
 		if(noemojiflag) {
@@ -340,8 +338,6 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		type = application_name->tag;
 		
 		if(type != SJSON_NULL) {
-			int l = ustrwidth(application_name->string_);
-		
 			naddstr(sbctx,  " - ");
 			
 			nattron(sbctx,  COLOR_PAIR(1));
@@ -833,10 +829,10 @@ int main(int argc, char *argv[])
 		char domain[256];
 		char *ck;
 		char *cs;
-		printf(nano_msg_list[msg_lang][NANO_MSG_WELCOME]);
-		printf(nano_msg_list[msg_lang][NANO_MSG_WEL_FIRST]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_WELCOME]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_WEL_FIRST]);
 retry1:
-		printf(nano_msg_list[msg_lang][NANO_MSG_INPUT_DOMAIN]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_INPUT_DOMAIN]);
 		printf(">");
 		scanf("%255s", domain);
 		printf("\n");
@@ -875,7 +871,7 @@ retry1:
 		int r2 = read_json_fom_path(jobj_from_file, "client_secret", &cso);
 		if(!r1 || !r2) {
 			// もしおかしければ最初まで戻る
-			printf(nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_DOMAIN]);
+			printf("%s", nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_DOMAIN]);
 			remove(json_name);
 			remove(config.dot_domain);
 			goto retry1;
@@ -888,8 +884,8 @@ retry1:
 		
 		char code[256];
 		
-		printf(nano_msg_list[msg_lang][NANO_MSG_AUTHCATION]);
-		printf(nano_msg_list[msg_lang][NANO_MSG_OAUTH_URL]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_AUTHCATION]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_OAUTH_URL]);
 		
 		// 認証用URLを表示、コードを入力させる
 		printf("https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
@@ -908,7 +904,7 @@ retry1:
 		int r3 = read_json_fom_path(jobj_from_file, "access_token", &token);
 		if(!r3) {
 			// もしおかしければ最初まで戻る
-			printf(nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_OAUTH]);
+			printf("%s", nano_msg_list[msg_lang][NANO_MSG_SOME_WRONG_OAUTH]);
 			remove(json_name);
 			remove(config.dot_domain);
 			remove(config.dot_token);
@@ -920,7 +916,7 @@ retry1:
 
 		// httpヘッダに添付する用の形式でコピーしておく
 		sprintf(access_token, "Authorization: Bearer %s", token->string_);
-		printf(nano_msg_list[msg_lang][NANO_MSG_FINISH]);
+		printf("%s", nano_msg_list[msg_lang][NANO_MSG_FINISH]);
 	}
 	
 	setlocale(LC_ALL, "");

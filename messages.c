@@ -1,6 +1,6 @@
 #include "messages.h"
 
-char nano_msg_list[2][NANO_MSG_NUM][256] = {
+const char nano_msg_list[2][NANO_MSG_NUM][256] = {
 	{
 		"Hello! Welcome to nanotodon!\n",
 		"First, ",
