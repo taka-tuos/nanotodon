@@ -116,7 +116,7 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	
 	// 通知種別を表示に流用するので先頭を大文字化
 	char *t = strdup(notify_type->string_);
-	t[0] = toupper(t[0]);
+	t[0] = toupper((int)(unsigned char)t[0]);
 	
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
 	nattron(sbctx, COLOR_PAIR(4));
