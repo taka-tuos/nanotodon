@@ -445,8 +445,12 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 				naddstr(sbctx,  url->string_);
 				naddstr(sbctx,  "\n");
 #ifdef USE_SIXEL
-				print_picture(sbctx, url->string_, 24);
-				naddstr(sbctx,  "\n");
+				struct sjson_node *type;
+				read_json_fom_path(obj, "type", &type);
+				if(!strcmp(type->string_, "image")) {
+					print_picture(sbctx, url->string_, 24);
+					naddstr(sbctx,  "\n");
+				}
 #endif
 			}
 		}
