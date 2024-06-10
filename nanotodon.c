@@ -221,10 +221,12 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	naddstr(sbctx, "#6;2;0;100;100");
 	naddstr(sbctx, "#7;2;100;100;100");
 
-	char dat[8][256];
+	char *dat;
+	int dw = sw + 1;
+	dat = (char *)malloc(dw * 8);
 	
 	for(int y = 0; y < sh / 6; y++) {
-		memset(dat, 0, sizeof(dat));
+		memset(dat, 0, dw * 8);
 
 		for(int x = 0; x < sw; x++) {
 			for(int i = y * 6, j = 0; j < 6; i++, j++) {
@@ -232,29 +234,31 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 					(((sb[i * sw + x] >> 8) & 0x0f) >= dither_bayer[i&3][x&3] ? 1 : 0) |
 					(((sb[i * sw + x] >> 4) & 0x0f) >= dither_bayer[i&3][x&3] ? 2 : 0) |
 					(((sb[i * sw + x] >> 0) & 0x0f) >= dither_bayer[i&3][x&3] ? 4 : 0);
-				dat[d][x] |= 1 << j;
+				dat[d * dw + x] |= 1 << j;
 			}
 
-			dat[0][x] += '?';
-			dat[1][x] += '?';
-			dat[2][x] += '?';
-			dat[3][x] += '?';
-			dat[4][x] += '?';
-			dat[5][x] += '?';
-			dat[6][x] += '?';
-			dat[7][x] += '?';
+			dat[0 * dw + x] += '?';
+			dat[1 * dw + x] += '?';
+			dat[2 * dw + x] += '?';
+			dat[3 * dw + x] += '?';
+			dat[4 * dw + x] += '?';
+			dat[5 * dw + x] += '?';
+			dat[6 * dw + x] += '?';
+			dat[7 * dw + x] += '?';
 		}
 
 		for(int i = 0; i < 8; i++) {
 			naddch(sbctx, '#');
 			naddch(sbctx, '0' + i);
-			dat[i][sw] = 0;
-			naddstr(sbctx, dat[i]);
+			dat[i * dw + sw] = 0;
+			naddstr(sbctx, dat + i * dw);
 			naddch(sbctx, '$');
 		}
 		naddch(sbctx, '-');
 	}
 	naddstr(sbctx, "\e\\");	
+
+	free(dat);
 
 	free(sb);
     free(buf->data);
