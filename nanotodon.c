@@ -154,11 +154,120 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	wrefresh(pad);*/
 }
 
+#ifdef USE_SIXEL
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+void print_picture(sbctx_t *sbctx, char *uri, int mul)
+{
+	CURL *curl;
+    struct rawBuffer *buf;
+
+    buf = (struct rawBuffer *)malloc(sizeof(struct rawBuffer));
+    buf->data = NULL;
+    buf->data_size = 0;
+
+    curl = curl_easy_init();
+    curl_easy_setopt(curl, CURLOPT_URL, uri);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, buf);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, buffer_writer);
+
+    curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+
+	int ix, iy, ic;
+    stbi_uc *ib = stbi_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
+
+	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) {
+		ib = stbi_load("err.png", &ix, &iy, &ic, 4);
+	}
+
+	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
+
+	int sh = 6 * mul;
+	int sw = ix * sh / iy;
+	/*int sh = iy;
+	int sw = ix;*/
+
+	unsigned short *sb = (unsigned short *)malloc(sw * sh * 2);
+
+	for(int y = 0; y < sh; y++) {
+		for(int x = 0; x < sw; x++) {
+			sb[y * sw + x] = 
+				((ib[((y * iy / sh) * ix + (x * ix / sw)) * 4 + 0] & 0xf0) << 4) |
+				((ib[((y * iy / sh) * ix + (x * ix / sw)) * 4 + 1] & 0xf0) >> 0) |
+				((ib[((y * iy / sh) * ix + (x * ix / sw)) * 4 + 2] & 0xf0) >> 4);
+		}
+	}
+
+	stbi_image_free(ib);
+
+	int dither_bayer[4][4] = {		// Bayer型のディザ行列
+		{ 0,  8,  2, 10},
+		{12,  4, 14,  6},
+		{ 3, 11,  1,  9},
+		{15,  7, 13,  5}
+	};
+
+	naddstr(sbctx, "\ePq");	
+
+	naddstr(sbctx, "#0;2;0;0;0");
+	naddstr(sbctx, "#1;2;100;0;0");
+	naddstr(sbctx, "#2;2;0;100;0");
+	naddstr(sbctx, "#3;2;100;100;0");
+	naddstr(sbctx, "#4;2;0;0;100");
+	naddstr(sbctx, "#5;2;100;0;100");
+	naddstr(sbctx, "#6;2;0;100;100");
+	naddstr(sbctx, "#7;2;100;100;100");
+
+	char dat[8][256];
+	
+	for(int y = 0; y < sh / 6; y++) {
+		memset(dat, 0, sizeof(dat));
+
+		for(int x = 0; x < sw; x++) {
+			for(int i = y * 6, j = 0; j < 6; i++, j++) {
+				int d = 
+					(((sb[i * sw + x] >> 8) & 0x0f) >= dither_bayer[i&3][x&3] ? 1 : 0) |
+					(((sb[i * sw + x] >> 4) & 0x0f) >= dither_bayer[i&3][x&3] ? 2 : 0) |
+					(((sb[i * sw + x] >> 0) & 0x0f) >= dither_bayer[i&3][x&3] ? 4 : 0);
+				dat[d][x] |= 1 << j;
+			}
+
+			dat[0][x] += '?';
+			dat[1][x] += '?';
+			dat[2][x] += '?';
+			dat[3][x] += '?';
+			dat[4][x] += '?';
+			dat[5][x] += '?';
+			dat[6][x] += '?';
+			dat[7][x] += '?';
+		}
+
+		for(int i = 0; i < 8; i++) {
+			naddch(sbctx, '#');
+			naddch(sbctx, '0' + i);
+			dat[i][sw] = 0;
+			naddstr(sbctx, dat[i]);
+			naddch(sbctx, '$');
+		}
+		naddch(sbctx, '-');
+	}
+	naddstr(sbctx, "\e\\");	
+
+	free(sb);
+    free(buf->data);
+    free(buf);
+}
+
+#endif
+
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
 #define DATEBUFLEN	40
 void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 {
-	struct sjson_node *content, *screen_name, *display_name, *reblog, *visibility;
+	struct sjson_node *content, *screen_name, *display_name, *avatar, *reblog, *visibility;
 	const char *sname, *dname, *vstr;
 	struct sjson_node *created_at;
 	struct tm tm;
@@ -168,6 +277,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
+	read_json_fom_path(jobj_from_string, "account/avatar", &avatar);
 	read_json_fom_path(jobj_from_string, "reblog", &reblog);
 	read_json_fom_path(jobj_from_string, "created_at", &created_at);
 	read_json_fom_path(jobj_from_string, "visibility", &visibility);
@@ -208,6 +318,11 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		return;
 	}
 	
+#ifdef USE_SIXEL
+	print_picture(sbctx, avatar->string_, 4);
+	naddstr(sbctx, "\n");
+#endif
+
 	// 誰からか[ screen_name(display_name) ]を表示
 	nattron(sbctx,  COLOR_PAIR(1)|A_BOLD);
 	naddstr(sbctx,  sname);
@@ -325,10 +440,14 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 				naddstr(sbctx,  noemojiflag ? "<LINK>" : "🔗");
 				naddstr(sbctx,  url->string_);
 				naddstr(sbctx,  "\n");
+#ifdef USE_SIXEL
+				print_picture(sbctx, url->string_, 24);
+				naddstr(sbctx,  "\n");
+#endif
 			}
 		}
 	}
-	
+
 	// 投稿アプリ名表示
 	struct sjson_node *application_name;
 	int exist_appname = read_json_fom_path(jobj_from_string, "application/name", &application_name);
