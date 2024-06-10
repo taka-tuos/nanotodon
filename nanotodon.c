@@ -892,6 +892,9 @@ retry1:
 		printf(">");
 		scanf("%255s", code);
 		printf("\n");
+
+		// 改行読み飛ばし
+		getchar();
 		
 		// 承認コードで認証
 		do_oauth(code, ck, cs);
@@ -911,14 +914,14 @@ retry1:
 			goto retry1;
 		}
 
-		sjson_destroy_context(ctx);
-		free(json);
-
 		// httpヘッダに添付する用の形式でコピーしておく
 		sprintf(access_token, "Authorization: Bearer %s", token->string_);
 		printf("%s", nano_msg_list[msg_lang][NANO_MSG_FINISH]);
+
+		sjson_destroy_context(ctx);
+		free(json);
 	}
-	
+
 	setlocale(LC_ALL, "");
 	
 	pthread_mutex_init(&prompt_mutex, NULL);
