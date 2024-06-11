@@ -190,6 +190,11 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	/*int sh = iy;
 	int sw = ix;*/
 
+	if(sw > 6 * mul * 2) {
+		sw = 6 * mul * 2;
+		sh = iy * sw / ix;
+	}
+
 	unsigned short *sb = (unsigned short *)malloc(sw * sh * 2);
 
 	for(int y = 0; y < sh; y++) {
