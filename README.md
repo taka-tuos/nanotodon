@@ -34,10 +34,24 @@ CLI Mastodon Client
 - ```-timeline <public|local|home>```  
   - (WIP)流すタイムラインの選択
 
-# 利用ガイド
+# 投稿方法
+1. TLが流れているときにEnterを押す
+2. ``> ``とプロンプトが出るのでToot内容を入力(``\n``と``\\``が利用できます)
+3. Enterを押すと投稿
+- Toot入力中はTLの更新がブロックされます
+- 以前のVerにあった``/private``等も利用できます
+
+# 詳しいガイド
 TBW  
 
-# ~~テスト済み環境(outdated)~~
+# 動いてるっぽい環境(24/06/11)
+- WSL2 + VSCode Terminal(w/ Sixel)
+- WSL2 + Windows Terminal
+- OpenBSD/amd64
+- NetBSD/i386 10.0
+- NetBSD/evbppc 10.0 (on Nintendo Wii)
+
+# ~~テスト済み環境(0.1.x-0.3.x)~~
 - ~~NetBSD/luna68k + mlterm~~
 - ~~NetBSD/x68k + mlterm~~
 - ~~NetBSD/sun3 + mlterm~~
