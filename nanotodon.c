@@ -217,6 +217,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	naddstr(sbctx, "\ePq");	
 
+#ifndef USE_RGB222
 	naddstr(sbctx, "#0;2;0;0;0");
 	naddstr(sbctx, "#1;2;100;0;0");
 	naddstr(sbctx, "#2;2;0;100;0");
@@ -225,36 +226,65 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	naddstr(sbctx, "#5;2;100;0;100");
 	naddstr(sbctx, "#6;2;0;100;100");
 	naddstr(sbctx, "#7;2;100;100;100");
+#else
+	for(int i = 0; i < 64; i++) {
+		char str[256];
 
+		int r = (i >> 4) & 3;
+		int g = (i >> 2) & 3;
+		int b = (i >> 0) & 3;
+
+		int tbl[] = {0,33,66,100};
+
+		sprintf(str, "#%d;2;%d;%d;%d", i, tbl[r], tbl[g], tbl[b]);
+		naddstr(sbctx, str);
+	}
+#endif
+
+#ifndef USE_RGB222
+	const int buf_siz = 8;
+#else
+	const int buf_siz = 64;
+#endif
 	char *dat;
 	int dw = sw + 1;
-	dat = (char *)malloc(dw * 8);
+	dat = (char *)malloc(dw * buf_siz);
 	
 	for(int y = 0; y < sh / 6; y++) {
-		memset(dat, 0, dw * 8);
+		memset(dat, 0, dw * buf_siz);
 
 		for(int x = 0; x < sw; x++) {
 			for(int i = y * 6, j = 0; j < 6; i++, j++) {
+#ifndef USE_RGB222
 				int d = 
 					(((sb[i * sw + x] >> 8) & 0x0f) >= dither_bayer[i&3][x&3] ? 1 : 0) |
 					(((sb[i * sw + x] >> 4) & 0x0f) >= dither_bayer[i&3][x&3] ? 2 : 0) |
 					(((sb[i * sw + x] >> 0) & 0x0f) >= dither_bayer[i&3][x&3] ? 4 : 0);
 				dat[d * dw + x] |= 1 << j;
+#else
+				int d = 
+					(((((sb[i * sw + x] >> 8) & 0x0f) >> 2) & 0x03) << 4) |
+					(((((sb[i * sw + x] >> 4) & 0x0f) >> 2) & 0x03) << 2) |
+					(((((sb[i * sw + x] >> 0) & 0x0f) >> 2) & 0x03) << 0);
+				dat[d * dw + x] |= 1 << j;
+#endif
 			}
 
-			dat[0 * dw + x] += '?';
-			dat[1 * dw + x] += '?';
-			dat[2 * dw + x] += '?';
-			dat[3 * dw + x] += '?';
-			dat[4 * dw + x] += '?';
-			dat[5 * dw + x] += '?';
-			dat[6 * dw + x] += '?';
-			dat[7 * dw + x] += '?';
+			for(int i = 0; i < buf_siz; i++) {
+				dat[i * dw + x] += '?';
+			}
 		}
 
-		for(int i = 0; i < 8; i++) {
+		for(int i = 0; i < buf_siz; i++) {
 			naddch(sbctx, '#');
+#ifndef USE_RGB222
 			naddch(sbctx, '0' + i);
+#else
+			char str[4];
+			sprintf(str, "%d", i);
+			naddstr(sbctx, str);
+#endif
+			
 			dat[i * dw + sw] = 0;
 			naddstr(sbctx, dat + i * dw);
 			naddch(sbctx, '$');
