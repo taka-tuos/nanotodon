@@ -115,9 +115,9 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 		sh = iy * sw / ix;
 	}
 
-#ifndef USE_RGB222
 	stbi_uc *sb = (stbi_uc *)malloc(sw * sh * 4);
-
+	
+#ifndef USE_RGB222
 	for(int y = 0; y < sh; y++) {
 		for(int x = 0; x < sw; x++) {
 			memcpy(sb + (y * sw + x) * 4, ib + ((y * iy / sh) * ix + (x * ix / sw)) * 4, 4);
@@ -148,7 +148,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 			sb[(y * sw + x) * 4 + 0] = CLIP_CH((rgba[0] * 100 + 50) / cnt / 100);
 			sb[(y * sw + x) * 4 + 1] = CLIP_CH((rgba[1] * 100 + 50) / cnt / 100);
 			sb[(y * sw + x) * 4 + 2] = CLIP_CH((rgba[2] * 100 + 50) / cnt / 100);
-			sb[(y * sw + x) * 4 + 3] = CLIP_CH((rgba[3] * 100 + 50) / cnt / 100;
+			sb[(y * sw + x) * 4 + 3] = CLIP_CH((rgba[3] * 100 + 50) / cnt / 100);
 		}
 	}
 #endif
