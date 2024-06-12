@@ -9,6 +9,8 @@
 char *errpic_six;
 char *palinit_six;
 
+#define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
+
 void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
 
 void sixel_init()
