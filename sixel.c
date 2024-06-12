@@ -12,7 +12,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-char *errpic_six;
+char *errpic_six_pic;
+char *errpic_six_ico;
 char *palinit_six;
 
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
@@ -60,17 +61,34 @@ void sixel_init()
     palinit_six = sb_palinit.buf;
     palinit_six[sb_palinit.bufptr] = 0;
 
-	ninitbuf(&sb_errpic);
 
-    int ix, iy, ic;
-    stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
+	{
+		ninitbuf(&sb_errpic);
 
-    sixel_out(&sb_errpic, ix, iy, ic, ib, 24);
+		int ix, iy, ic;
+		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
 
-    nflushcache(&sb_errpic);
+		sixel_out(&sb_errpic, ix, iy, ic, ib, SIXEL_MUL_PIC);
 
-    errpic_six = sb_errpic.buf;
-    errpic_six[sb_errpic.bufptr] = 0;
+		nflushcache(&sb_errpic);
+
+		errpic_six_pic = sb_errpic.buf;
+		errpic_six_pic[sb_errpic.bufptr] = 0;
+	}
+
+	{
+		ninitbuf(&sb_errpic);
+		
+		int ix, iy, ic;
+		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
+
+		sixel_out(&sb_errpic, ix, iy, ic, ib, SIXEL_MUL_ICO);
+
+		nflushcache(&sb_errpic);
+
+		errpic_six_ico = sb_errpic.buf;
+		errpic_six_ico[sb_errpic.bufptr] = 0;
+	}
 }
 
 #ifdef USE_WEBP
@@ -120,7 +138,8 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	}
 
 	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) {
-        naddstr(sbctx, errpic_six);	
+        if(mul == SIXEL_MUL_PIC) naddstr(sbctx, errpic_six_pic);
+		else if(mul == SIXEL_MUL_ICO) naddstr(sbctx, errpic_six_ico);
 	} else {
         sixel_out(sbctx, ix, iy, ic, ib, mul);
     }

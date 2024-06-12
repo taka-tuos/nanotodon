@@ -211,7 +211,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	}
 	
 #ifdef USE_SIXEL
-	print_picture(sbctx, avatar->string_, 4);
+	print_picture(sbctx, avatar->string_, SIXEL_MUL_ICO);
 	naddstr(sbctx, "\n");
 #endif
 
@@ -336,7 +336,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 				struct sjson_node *type;
 				read_json_fom_path(obj, "type", &type);
 				if(!strcmp(type->string_, "image")) {
-					print_picture(sbctx, url->string_, 24);
+					print_picture(sbctx, url->string_, SIXEL_MUL_PIC);
 					naddstr(sbctx,  "\n");
 				}
 #endif
