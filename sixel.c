@@ -102,8 +102,11 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 
 	int sh = 6 * mul;
 	int sw = ix * sh / iy;
-	/*int sh = iy;
-	int sw = ix;*/
+
+	if(sh > iy) {
+		sh = iy;
+		sw = ix;
+	}
 
 	if(sw > 6 * mul * 2) {
 		sw = 6 * mul * 2;
@@ -164,9 +167,9 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 #endif
 #else
 				int d = 
-					((sb[(i * sw + x) * 4 + 0] >> 6) << 4) |
-					((sb[(i * sw + x) * 4 + 1] >> 6) << 2) |
-					((sb[(i * sw + x) * 4 + 2] >> 6) << 0);
+					((CLIP_CH(sb[(i * sw + x) * 4 + 0] + (dither_bayer[i&3][x&3] * 2 - 16)) >> 6) << 4) |
+					((CLIP_CH(sb[(i * sw + x) * 4 + 1] + (dither_bayer[i&3][x&3] * 2 - 16)) >> 6) << 2) |
+					((CLIP_CH(sb[(i * sw + x) * 4 + 2] + (dither_bayer[i&3][x&3] * 2 - 16)) >> 6) << 0);
 				dat[d * dw + x] |= 1 << j;
 #endif
 			}
