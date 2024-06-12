@@ -2,6 +2,7 @@
 #define __UTILS_H__
 
 #include <curl/curl.h>
+#include <stdint.h>
 #include "sjson.h"
 
 int ustrwidth(const char *str);

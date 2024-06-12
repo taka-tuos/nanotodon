@@ -1,5 +1,5 @@
 TARGET = nanotodon
-OBJS = nanotodon.o sbuf.o squeue.o utils.o config.o messages.o
+OBJS = nanotodon.o sbuf.o squeue.o sixel.o utils.o config.o messages.o
 
 # Use $XDG_CONFIG_HOME or ~/.config dir to save config files
 CFLAGS += -DSUPPORT_XDG_BASE_DIR -D_GNU_SOURCE -D_BSD_SOURCE -D_NETBSD_SOURCE
