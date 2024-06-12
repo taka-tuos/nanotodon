@@ -152,6 +152,9 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 {
     if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
 
+	uint32_t mnsfw = mul & 0x100 ? 0xfffffffc : 0xffffffff;
+	mul &= 0xff;
+
 	int sh = 6 * mul;
 	int sw = ix * sh / iy;
 
@@ -170,17 +173,17 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 #ifndef USE_RGB222
 	for(int y = 0; y < sh; y++) {
 		for(int x = 0; x < sw; x++) {
-			memcpy(sb + (y * sw + x) * 4, ib + ((y * iy / sh) * ix + (x * ix / sw)) * 4, 4);
+			memcpy(sb + (y * sw + x) * 4, ib + (((y & mnsfw) * iy / sh) * ix + ((x & mnsfw) * ix / sw)) * 4, 4);
 		}
 	}
 #else
 	for(int y = 0; y < sh; y++) {
 		for(int x = 0; x < sw; x++) {
-			int ay = y * iy / sh;
-			int by = (y + 1) * iy / sh;
+			int ay = (y & mnsfw) * iy / sh;
+			int by = ((y & mnsfw) + 1) * iy / sh;
 
-			int ax = x * ix / sw;
-			int bx = (x + 1) * ix / sw;
+			int ax = (x & mnsfw) * ix / sw;
+			int bx = ((x & mnsfw) + 1) * ix / sw;
 
 			int cnt = 0;
 			int rgba[4] = { 0 };
@@ -205,11 +208,15 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 
 	stbi_image_free(ib);
 
-	int dither_bayer[4][4] = {		// Bayer型のディザ行列
-		{ 0,  8,  2, 10},
-		{12,  4, 14,  6},
-		{ 3, 11,  1,  9},
-		{15,  7, 13,  5}
+	static const int dither_bayer[8][8] = {		// Bayer型のディザ行列
+		{0, 32, 8, 40, 2, 34, 10, 42},
+		{48, 16, 56, 24, 50, 18, 58, 26},
+		{12, 44, 4, 36, 14, 46, 6, 38},
+		{60, 28, 52, 20, 62, 30, 54, 22},
+		{3, 35, 11, 43, 1, 33, 9, 41},
+		{51, 19, 59, 27, 49, 17, 57, 25},
+		{15, 47, 7, 39, 13, 45, 5, 37},
+		{63, 31, 55, 23, 61, 29, 53, 21}
 	};
 
 	naddstr(sbctx, "\ePq");	
@@ -237,21 +244,21 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 #ifndef USE_RGB222
 #ifndef MONO_SIXEL
 				int d = 
-					((sb[(i * sw + x) * 4 + 0] >> 4) >= dither_bayer[i&3][x&3] ? 1 : 0) |
-					((sb[(i * sw + x) * 4 + 1] >> 4) >= dither_bayer[i&3][x&3] ? 2 : 0) |
-					((sb[(i * sw + x) * 4 + 2] >> 4) >= dither_bayer[i&3][x&3] ? 4 : 0);
+					((sb[(i * sw + x) * 4 + 0] >> 2) >= dither_bayer[i&7][x&7] ? 1 : 0) |
+					((sb[(i * sw + x) * 4 + 1] >> 2) >= dither_bayer[i&7][x&7] ? 2 : 0) |
+					((sb[(i * sw + x) * 4 + 2] >> 2) >= dither_bayer[i&7][x&7] ? 4 : 0);
 				dat[d * dw + x] |= 1 << j;
 #else
 				int r = sb[(i * sw + x) * 4 + 0];
 				int g = sb[(i * sw + x) * 4 + 1];
 				int b = sb[(i * sw + x) * 4 + 2];
-				dat[x] |= (((((r + b) >> 1) + b) >> 1) >> 4) >= dither_bayer[i&3][x&3] ? 1 << j : 0;
+				dat[x] |= (((((r + b) >> 1) + b) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 1 << j : 0;
 #endif
 #else
 				int d = 
-					((CLIP_CH(sb[(i * sw + x) * 4 + 0] + (dither_bayer[i&3][x&3] * 2 - 16)) >> 6) << 4) |
-					((CLIP_CH(sb[(i * sw + x) * 4 + 1] + (dither_bayer[i&3][x&3] * 2 - 16)) >> 6) << 2) |
-					((CLIP_CH(sb[(i * sw + x) * 4 + 2] + (dither_bayer[i&3][x&3] * 2 - 16)) >> 6) << 0);
+					((CLIP_CH(sb[(i * sw + x) * 4 + 0] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 4) |
+					((CLIP_CH(sb[(i * sw + x) * 4 + 1] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 2) |
+					((CLIP_CH(sb[(i * sw + x) * 4 + 2] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 0);
 				dat[d * dw + x] |= 1 << j;
 #endif
 			}

@@ -159,17 +159,24 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 #define DATEBUFLEN	40
 void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 {
-	struct sjson_node *content, *screen_name, *display_name, *avatar, *reblog, *visibility;
+	struct sjson_node *content, *screen_name, *display_name, *reblog, *visibility;
 	const char *sname, *dname, *vstr;
 	struct sjson_node *created_at;
 	struct tm tm;
 	time_t time;
 	char datebuf[DATEBUFLEN];
 	if(!jobj_from_string) return;
+
+#ifdef USE_SIXEL
+	struct sjson_node *avatar, *sensitive;
+	read_json_fom_path(jobj_from_string, "account/avatar", &avatar);
+	read_json_fom_path(jobj_from_string, "sensitive", &sensitive);
+#endif
+
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
-	read_json_fom_path(jobj_from_string, "account/avatar", &avatar);
+	
 	read_json_fom_path(jobj_from_string, "reblog", &reblog);
 	read_json_fom_path(jobj_from_string, "created_at", &created_at);
 	read_json_fom_path(jobj_from_string, "visibility", &visibility);
@@ -185,6 +192,11 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 			return;
 		}
 	}
+
+#ifdef USE_SIXEL
+	int fnsfw = 0;
+	fnsfw = sensitive->bool_ ? 0x100 : 0;
+#endif
 	
 	sjson_tag type;
 	
@@ -336,7 +348,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 				struct sjson_node *type;
 				read_json_fom_path(obj, "type", &type);
 				if(!strcmp(type->string_, "image")) {
-					print_picture(sbctx, url->string_, SIXEL_MUL_PIC);
+					print_picture(sbctx, url->string_, SIXEL_MUL_PIC | fnsfw);
 					naddstr(sbctx,  "\n");
 				}
 #endif
