@@ -941,6 +941,7 @@ retry1:
 	
 	pthread_mutex_init(&prompt_mutex, NULL);
 	squeue_init();
+	sixel_init();
 
 	pthread_t stream_thread;
 	pthread_t prompt_thread;

@@ -6,6 +6,65 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+char *errpic_six;
+char *palinit_six;
+
+void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
+
+void sixel_init()
+{
+    sbctx_t sb_errpic;
+    sbctx_t sb_palinit;
+
+    ninitbuf(&sb_palinit);
+
+#ifndef USE_RGB222
+#ifndef MONO_SIXEL
+	naddstr(&sb_palinit, "#0;2;0;0;0");
+	naddstr(&sb_palinit, "#1;2;100;0;0");
+	naddstr(&sb_palinit, "#2;2;0;100;0");
+	naddstr(&sb_palinit, "#3;2;100;100;0");
+	naddstr(&sb_palinit, "#4;2;0;0;100");
+	naddstr(&sb_palinit, "#5;2;100;0;100");
+	naddstr(&sb_palinit, "#6;2;0;100;100");
+	naddstr(&sb_palinit, "#7;2;100;100;100");
+#else 
+	naddstr(&sb_palinit, "#0;2;0;0;0");
+	naddstr(&sb_palinit, "#1;2;100;100;100");
+#endif
+#else
+	for(int i = 0; i < 64; i++) {
+		char str[256];
+
+		int r = (i >> 4) & 3;
+		int g = (i >> 2) & 3;
+		int b = (i >> 0) & 3;
+
+		int tbl[] = {0,33,66,100};
+
+		sprintf(str, "#%d;2;%d;%d;%d", i, tbl[r], tbl[g], tbl[b]);
+		naddstr(&sb_palinit, str);
+	}
+#endif
+
+    nflushcache(&sb_palinit);
+
+    palinit_six = sb_palinit.buf;
+    palinit_six[sb_palinit.bufptr] = 0;
+
+	ninitbuf(&sb_errpic);
+
+    int ix, iy, ic;
+    stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
+
+    sixel_out(&sb_errpic, ix, iy, ic, ib, 24);
+
+    nflushcache(&sb_errpic);
+
+    errpic_six = sb_errpic.buf;
+    errpic_six[sb_errpic.bufptr] = 0;
+}
+
 void print_picture(sbctx_t *sbctx, char *uri, int mul)
 {
 	CURL *curl;
@@ -28,10 +87,18 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
     stbi_uc *ib = stbi_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
 
 	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) {
-		ib = stbi_load("err.png", &ix, &iy, &ic, 4);
-	}
+        naddstr(sbctx, errpic_six);	
+	} else {
+        sixel_out(sbctx, ix, iy, ic, ib, mul);
+    }
 
-	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
+    free(buf->data);
+    free(buf);
+}
+
+void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
+{
+    if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
 
 	int sh = 6 * mul;
 	int sw = ix * sh / iy;
@@ -62,34 +129,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	naddstr(sbctx, "\ePq");	
 
-#ifndef USE_RGB222
-#ifndef MONO_SIXEL
-	naddstr(sbctx, "#0;2;0;0;0");
-	naddstr(sbctx, "#1;2;100;0;0");
-	naddstr(sbctx, "#2;2;0;100;0");
-	naddstr(sbctx, "#3;2;100;100;0");
-	naddstr(sbctx, "#4;2;0;0;100");
-	naddstr(sbctx, "#5;2;100;0;100");
-	naddstr(sbctx, "#6;2;0;100;100");
-	naddstr(sbctx, "#7;2;100;100;100");
-#else 
-	naddstr(sbctx, "#0;2;0;0;0");
-	naddstr(sbctx, "#1;2;100;100;100");
-#endif
-#else
-	for(int i = 0; i < 64; i++) {
-		char str[256];
-
-		int r = (i >> 4) & 3;
-		int g = (i >> 2) & 3;
-		int b = (i >> 0) & 3;
-
-		int tbl[] = {0,33,66,100};
-
-		sprintf(str, "#%d;2;%d;%d;%d", i, tbl[r], tbl[g], tbl[b]);
-		naddstr(sbctx, str);
-	}
-#endif
+    naddstr(sbctx, palinit_six);	
 
 #ifndef USE_RGB222
 #ifndef MONO_SIXEL
@@ -142,14 +182,11 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 #ifndef MONO_SIXEL
 			naddch(sbctx, '0' + i);
 #else
-			naddstr(sbctx, "0!");
-			char str[4];
-			sprintf(str, "%d", sw);
+			char str[8];
+			sprintf(str, "0!%d", sw);
 			naddstr(sbctx, str);
 
-			naddch(sbctx, '$');
-			naddch(sbctx, '#');
-			naddch(sbctx, '1');
+			naddstr(sbctx, "$#1");
 #endif
 #else
 			char str[4];
@@ -166,10 +203,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	naddstr(sbctx, "\e\\");	
 
 	free(dat);
-
 	free(sb);
-    free(buf->data);
-    free(buf);
 }
 
 #endif
