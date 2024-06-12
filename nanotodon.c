@@ -808,7 +808,6 @@ int main(int argc, char *argv[])
 					return -1;
 				}
 				
-				selected_stream = strdup(argv[i]);
 				printf("Using timeline: %s\n", selected_stream);
 			}
 		} else {
