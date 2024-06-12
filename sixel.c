@@ -1,6 +1,12 @@
 #include "sixel.h"
 #include "utils.h"
 #include <curl/curl.h>
+#include <string.h>
+
+#ifdef USE_WEBP
+#include <webp/decode.h>
+#include <webp/encode.h>
+#endif
 
 #ifdef USE_SIXEL
 #define STB_IMAGE_IMPLEMENTATION
@@ -67,6 +73,22 @@ void sixel_init()
     errpic_six[sb_errpic.bufptr] = 0;
 }
 
+#ifdef USE_WEBP
+stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp)
+{
+	VP8StatusCode ret; /* webp関数の戻り値格納 */
+	WebPBitstreamFeatures features; /* 入力webpファイルの情報 */
+
+	/* WebPデータの情報取得 */
+	ret = WebPGetFeatures(buffer, len, &features);
+	if(ret != VP8_STATUS_OK) {
+		return (stbi_uc *)0;
+	}
+
+	return WebPDecodeRGBA(buffer, len, x, y);
+}
+#endif
+
 void print_picture(sbctx_t *sbctx, char *uri, int mul)
 {
 	CURL *curl;
@@ -85,8 +107,17 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
     curl_easy_perform(curl);
     curl_easy_cleanup(curl);
 
-	int ix, iy, ic;
-    stbi_uc *ib = stbi_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
+	int sl = strlen(uri);
+
+	int ix = 0, iy = 0, ic = 0;
+	stbi_uc *ib = (stbi_uc *)0;
+	if(uri[sl - 1] != 'p') {
+    	ib = stbi_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
+	} else {
+#ifdef USE_WEBP
+		ib = webp_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
+#endif
+	}
 
 	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) {
         naddstr(sbctx, errpic_six);	
@@ -116,7 +147,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 	}
 
 	stbi_uc *sb = (stbi_uc *)malloc(sw * sh * 4);
-	
+
 #ifndef USE_RGB222
 	for(int y = 0; y < sh; y++) {
 		for(int x = 0; x < sw; x++) {
