@@ -16,7 +16,7 @@ int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **d
 
 
 struct rawBuffer {
-    char *data;
+    unsigned char *data;
     int data_size;
 };
 

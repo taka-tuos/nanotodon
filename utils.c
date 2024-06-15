@@ -154,10 +154,10 @@ size_t buffer_writer(char *ptr, size_t size, size_t nmemb, void *stream) {
     }
 
     if (!buf->data) {
-        buf->data = (char *)malloc(block);
+        buf->data = malloc(block);
     }
     else {
-        buf->data = (char *)realloc(buf->data, buf->data_size + block);
+        buf->data = realloc(buf->data, buf->data_size + block);
     }
 
     if (buf->data) {
