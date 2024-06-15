@@ -952,7 +952,9 @@ retry1:
 	
 	pthread_mutex_init(&prompt_mutex, NULL);
 	squeue_init();
+#ifdef USE_SIXEL
 	sixel_init();
+#endif
 
 	pthread_t stream_thread;
 	pthread_t prompt_thread;
