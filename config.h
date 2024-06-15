@@ -5,7 +5,7 @@
 
 struct nanotodon_config {
 	char profile_name[256];
-	
+
 	char root_dir[256];
 	char dot_token[256];
 	char dot_domain[256];
