@@ -70,7 +70,7 @@ int hidlckflag = 1;
 int noemojiflag = 0;
 
 // curlから呼び出されるストリーミング受信関数
-size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
+static size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	if (size * nmemb == 0)
 		return 0;
 	
@@ -385,7 +385,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 }
 
 // ストリーミングで受信したJSON(接続維持用データを取り除き一体化したもの)
-void streaming_received(void)
+static void streaming_received(void)
 {
 	
 	// イベント取得
@@ -431,7 +431,7 @@ void streaming_received(void)
 }
 
 // ストリーミング受信スレッド
-void *stream_thread_func(void *param)
+static void *stream_thread_func(void *param)
 {
 	get_timeline();
 	
@@ -480,7 +480,7 @@ void *stream_thread_func(void *param)
 	return NULL;
 }
 
-void *prompt_thread_func(void *param)
+static void *prompt_thread_func(void *param)
 {
 	while(1) {
 		if(prompt_notify == 0) {
@@ -494,6 +494,8 @@ void *prompt_thread_func(void *param)
 			nanosleep(&req, NULL);
 		}
 	}
+
+	return NULL;
 }
 
 // インスタンスにクライアントを登録する
@@ -688,7 +690,7 @@ void do_toot(char *s)
 }
 
 // curlから呼び出されるHTL受信関数
-size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
+static size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	if (size * nmemb == 0)
 		return 0;
 	
