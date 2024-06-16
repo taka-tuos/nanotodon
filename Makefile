@@ -20,6 +20,10 @@ CFLAGS += -DSUPPORT_XDG_BASE_DIR
 #CFLAGS += -I/usr/pkg/include
 #LDFLAGS += -L/usr/pkg/lib -Wl,-R/usr/pkg/lib
 
+# for FreeBSD and OpenBSD
+#CFLAGS += -I/usr/local/include
+#LDFLAGS += -L/usr/local/lib
+
 # default
 default : $(TARGET)
 
