@@ -37,7 +37,7 @@ void sixel_init()
 	naddstr(&sb_palinit, "#5;2;100;0;100");
 	naddstr(&sb_palinit, "#6;2;0;100;100");
 	naddstr(&sb_palinit, "#7;2;100;100;100");
-#else 
+#else
 	naddstr(&sb_palinit, "#0;2;0;0;0");
 	naddstr(&sb_palinit, "#1;2;100;100;100");
 #endif
@@ -78,7 +78,7 @@ void sixel_init()
 
 	{
 		ninitbuf(&sb_errpic);
-		
+
 		int ix, iy, ic;
 		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
 
@@ -219,9 +219,9 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 		{63, 31, 55, 23, 61, 29, 53, 21}
 	};
 
-	naddstr(sbctx, "\ePq");	
+	naddstr(sbctx, "\ePq");
 
-    naddstr(sbctx, palinit_six);	
+    naddstr(sbctx, palinit_six);
 
 #ifndef USE_RGB222
 #ifndef MONO_SIXEL
@@ -235,7 +235,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 	char *dat;
 	int dw = sw + 1;
 	dat = (char *)malloc(dw * buf_siz);
-	
+
 	for(int y = 0; y < sh / 6; y++) {
 		memset(dat, 0, dw * buf_siz);
 
@@ -243,7 +243,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 			for(int i = y * 6, j = 0; j < 6; i++, j++) {
 #ifndef USE_RGB222
 #ifndef MONO_SIXEL
-				int d = 
+				int d =
 					((sb[(i * sw + x) * 4 + 0] >> 2) >= dither_bayer[i&7][x&7] ? 1 : 0) |
 					((sb[(i * sw + x) * 4 + 1] >> 2) >= dither_bayer[i&7][x&7] ? 2 : 0) |
 					((sb[(i * sw + x) * 4 + 2] >> 2) >= dither_bayer[i&7][x&7] ? 4 : 0);
@@ -255,7 +255,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 				dat[x] |= (((((r + b) >> 1) + b) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 1 << j : 0;
 #endif
 #else
-				int d = 
+				int d =
 					((CLIP_CH(sb[(i * sw + x) * 4 + 0] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 4) |
 					((CLIP_CH(sb[(i * sw + x) * 4 + 1] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 2) |
 					((CLIP_CH(sb[(i * sw + x) * 4 + 2] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 0);
@@ -285,14 +285,14 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 			sprintf(str, "%d", i);
 			naddstr(sbctx, str);
 #endif
-			
+
 			dat[i * dw + sw] = 0;
 			naddstr(sbctx, dat + i * dw);
 			naddch(sbctx, '$');
 		}
 		naddch(sbctx, '-');
 	}
-	naddstr(sbctx, "\e\\");	
+	naddstr(sbctx, "\e\\");
 
 	free(dat);
 	free(sb);

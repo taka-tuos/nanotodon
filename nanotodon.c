@@ -70,21 +70,21 @@ int hidlckflag = 1;
 int noemojiflag = 0;
 
 // curlから呼び出されるストリーミング受信関数
-size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
+static size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	if (size * nmemb == 0)
 		return 0;
-	
+
 	char **json = ((char **)data);
-	
+
 	size_t realsize = size * nmemb;
-	
+
 	size_t length = realsize + 1;
 	char *str = *json;
 	str = realloc(str, (str ? strlen(str) : 0) + length);
 	if(*((char **)data) == NULL) strcpy(str, "");
-	
+
 	*json = str;
-	
+
 	if (str != NULL) {
 		strncat(str, ptr, realsize);
 		// 改行が来たらデータ終端(一回の受信に収まるとは限らない)
@@ -112,13 +112,13 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
 	int exist_status = read_json_fom_path(jobj_from_string, "status", &status);
-	
+
 	putchar('\a');
-	
+
 	// 通知種別を表示に流用するので先頭を大文字化
 	char *t = strdup(notify_type->string_);
 	t[0] = toupper((int)(unsigned char)t[0]);
-	
+
 	// 通知種別と誰からか[ screen_name(display_name) ]を表示
 	nattron(sbctx, COLOR_PAIR(4));
 	if(!noemojiflag) naddstr(sbctx, strcmp(t, "Follow") == 0 ? "👥" : strcmp(t, "Favourite") == 0 ? "💕" : strcmp(t, "Reblog") == 0 ? "🔃" : strcmp(t, "Mention") == 0 ? "🗨" : "");
@@ -126,9 +126,9 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	free(t);
 	naddstr(sbctx, " from ");
 	naddstr(sbctx, screen_name->string_);
-	
+
 	dname = display_name->string_;
-	
+
 	// dname(display_name)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
 		naddstr(sbctx, " (");
@@ -137,20 +137,20 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	}
 	naddstr(sbctx, "\n");
 	nattroff(sbctx, COLOR_PAIR(4));
-	
+
 	sjson_tag type;
-	
+
 	type = status->tag;
-	
+
 	// 通知対象のTootを表示,Follow通知だとtypeがNULLになる
 	if(type != SJSON_NULL && exist_status) {
 		stream_event_update(sbctx, status);
 	}
-	
+
 	naddstr(sbctx, "\n");
 
 	//wrefresh(scr);
-	
+
 	/*wmove(pad, pad_x, pad_y);
 	wrefresh(pad);*/
 }
@@ -176,7 +176,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	read_json_fom_path(jobj_from_string, "content", &content);
 	read_json_fom_path(jobj_from_string, "account/acct", &screen_name);
 	read_json_fom_path(jobj_from_string, "account/display_name", &display_name);
-	
+
 	read_json_fom_path(jobj_from_string, "reblog", &reblog);
 	read_json_fom_path(jobj_from_string, "created_at", &created_at);
 	read_json_fom_path(jobj_from_string, "visibility", &visibility);
@@ -184,9 +184,9 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	strptime(created_at->string_, "%Y-%m-%dT%H:%M:%S", &tm);
 	time = timegm(&tm);
 	strftime(datebuf, sizeof(datebuf), "%x(%a) %X", localtime(&time));
-	
+
 	vstr = visibility->string_;
-	
+
 	if(hidlckflag) {
 		if(!strcmp(vstr, "private") || !strcmp(vstr, "direct")) {
 			return;
@@ -197,13 +197,13 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	int fnsfw = 0;
 	fnsfw = sensitive->bool_ ? 0x100 : 0;
 #endif
-	
+
 	sjson_tag type;
-	
+
 	type = reblog->tag;
 	sname = screen_name->string_;
 	dname = display_name->string_;
-	
+
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != SJSON_NULL) {
 		nattron(sbctx,  COLOR_PAIR(3));
@@ -221,7 +221,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		stream_event_update(sbctx, reblog);
 		return;
 	}
-	
+
 #ifdef USE_SIXEL
 	print_picture(sbctx, avatar->string_, SIXEL_MUL_ICO);
 	naddstr(sbctx, "\n");
@@ -231,7 +231,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	nattron(sbctx,  COLOR_PAIR(1)|A_BOLD);
 	naddstr(sbctx,  sname);
 	nattroff(sbctx,  COLOR_PAIR(1)|A_BOLD);
-	
+
 	// dname(表示名)が空の場合は括弧を表示しない
 	if (dname[0] != '\0') {
 		nattron(sbctx,  COLOR_PAIR(2));
@@ -240,7 +240,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		naddstr(sbctx,  ")");
 		nattroff(sbctx,  COLOR_PAIR(2));
 	}
-	
+
 	if(strcmp(vstr, "public")) {
 		nattron(sbctx,  COLOR_PAIR(3)|A_BOLD);
 		naddstr(sbctx,  " ");
@@ -263,26 +263,26 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		}
 		nattroff(sbctx,  COLOR_PAIR(3)|A_BOLD);
 	}
-	
+
 	// 日付表示
 	naddstr(sbctx,  " - ");
 	nattron(sbctx,  COLOR_PAIR(5));
 	naddstr(sbctx,  datebuf);
 	nattroff(sbctx,  COLOR_PAIR(5));
 	naddstr(sbctx,  "\n");
-	
+
 	const char *src = content->string_;
-	
+
 	/*naddstr(sbctx,  src);
 	naddstr(sbctx,  "\n");*/
-	
+
 	// タグ消去処理、2個目以降のの<p>は改行に
 	int ltgt = 0;
 	int pcount = 0;
 	while(*src) {
 		// タグならタグフラグを立てる
 		if(*src == '<') ltgt = 1;
-		
+
 		if(ltgt && strncmp(src, "<br", 3) == 0) naddch(sbctx,  '\n');
 		if(ltgt && strncmp(src, "<p", 2) == 0) {
 			pcount++;
@@ -290,7 +290,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 				naddstr(sbctx,  "\n\n");
 			}
 		}
-		
+
 		// タグフラグが立っていない(=通常文字)とき
 		if(!ltgt) {
 			// 文字実体参照の処理
@@ -327,14 +327,14 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		if(*src == '>') ltgt = 0;
 		src++;
 	}
-	
+
 	naddstr(sbctx,  "\n");
-	
+
 	// 添付メディアのURL表示
 	struct sjson_node *media_attachments;
-	
+
 	read_json_fom_path(jobj_from_string, "media_attachments", &media_attachments);
-	
+
 	if(media_attachments->tag == SJSON_ARRAY) {
 		for (int i = 0; i < sjson_child_count(media_attachments); ++i) {
 			struct sjson_node *obj = sjson_find_element(media_attachments, i);
@@ -359,14 +359,14 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	// 投稿アプリ名表示
 	struct sjson_node *application_name;
 	int exist_appname = read_json_fom_path(jobj_from_string, "application/name", &application_name);
-	
+
 	// 名前が取れたときのみ表示
 	if(exist_appname) {
 		type = application_name->tag;
-		
+
 		if(type != SJSON_NULL) {
 			naddstr(sbctx,  " - ");
-			
+
 			nattron(sbctx,  COLOR_PAIR(1));
 			naddstr(sbctx,  "via ");
 			nattroff(sbctx,  COLOR_PAIR(1));
@@ -376,29 +376,29 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 			nattroff(sbctx,  COLOR_PAIR(2));
 		}
 	}
-	
+
 	naddstr(sbctx,  "\n");
 	//wrefresh(scr);
-	
+
 	/*wmove(pad, pad_x, pad_y);
 	wrefresh(pad);*/
 }
 
 // ストリーミングで受信したJSON(接続維持用データを取り除き一体化したもの)
-void streaming_received(void)
+static void streaming_received(void)
 {
-	
+
 	// イベント取得
 	if(strncmp(streaming_json, "event", 5) == 0) {
 		char *type = strdup(streaming_json + 7);
 		if(strncmp(type, "update", 6) == 0) stream_event_handler = stream_event_update;
 		else if(strncmp(type, "notification", 12) == 0) stream_event_handler = stream_event_notify;
 		else stream_event_handler = NULL;
-		
+
 		char *top = type;
 		while(*type != '\n') type++;
 		type++;
-		
+
 		// 後ろにJSONが引っ付いていればJSONバッファへ
 		if(*type != 0) {
 			free(streaming_json);
@@ -406,7 +406,7 @@ void streaming_received(void)
 		}
 		free(top);
 	}
-	
+
 	// JSON受信
 	if(strncmp(streaming_json, "data", 4) == 0) {
 		if(stream_event_handler) {
@@ -425,16 +425,16 @@ void streaming_received(void)
 			stream_event_handler = NULL;
 		}
 	}
-	
+
 	free(streaming_json);
 	streaming_json = NULL;
 }
 
 // ストリーミング受信スレッド
-void *stream_thread_func(void *param)
+static void *stream_thread_func(void *param)
 {
 	get_timeline();
-	
+
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_slist *slist1;
@@ -443,9 +443,9 @@ void *stream_thread_func(void *param)
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
-	
+
 	char *uri_stream = malloc(strlen(URI_STREAM) + strlen(selected_stream) + 1);
-	
+
 	strcpy(uri_stream, URI_STREAM);
 	strcat(uri_stream, selected_stream);
 
@@ -463,10 +463,10 @@ void *stream_thread_func(void *param)
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, (void *)&streaming_json);
 	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, streaming_callback);
 	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
-	
+
 	streaming_received_handler = streaming_received;
 	stream_event_handler = NULL;
-	
+
 	ret = curl_easy_perform(hnd);
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 
@@ -476,11 +476,11 @@ void *stream_thread_func(void *param)
 	free(uri);
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
-	
+
 	return NULL;
 }
 
-void *prompt_thread_func(void *param)
+static void *prompt_thread_func(void *param)
 {
 	while(1) {
 		if(prompt_notify == 0) {
@@ -494,6 +494,8 @@ void *prompt_thread_func(void *param)
 			nanosleep(&req, NULL);
 		}
 	}
+
+	return NULL;
 }
 
 // インスタンスにクライアントを登録する
@@ -504,13 +506,13 @@ void do_create_client(char *domain, char *dot_ckcs)
 	struct curl_httppost *post1;
 	struct curl_httppost *postend;
 	char errbuf[CURL_ERROR_SIZE];
-	
+
 	char json_name[256], *uri;
-	
+
 	strcpy(json_name, dot_ckcs);
-	
+
 	uri = create_uri_string("api/v1/apps");
-	
+
 	// クライアントキーファイルをオープン
 	FILE *f = fopen(json_name, "wb");
 
@@ -540,10 +542,10 @@ void do_create_client(char *domain, char *dot_ckcs)
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, f);	// データの保存先ファイルポインタを指定
 	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
-	
+
 	ret = curl_easy_perform(hnd);
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
-	
+
 	fclose(f);
 
 	curl_easy_cleanup(hnd);
@@ -558,10 +560,10 @@ void do_oauth(char *code, char *ck, char *cs)
 {
 	char fields[512];
 	sprintf(fields, "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&scope=read%%20write%%20follow", ck, cs, code);
-	
+
 	// トークンファイルをオープン
 	FILE *f = fopen(config.dot_token, "wb");
-	
+
 	CURLcode ret;
 	CURL *hnd;
 	struct curl_httppost *post1;
@@ -604,10 +606,10 @@ void do_oauth(char *code, char *ck, char *cs)
 	curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, f);	// データの保存先ファイルポインタを指定
 	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
-	
+
 	ret = curl_easy_perform(hnd);
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
-	
+
 	fclose(f);
 
 	curl_easy_cleanup(hnd);
@@ -626,10 +628,10 @@ void do_toot(char *s)
 	struct curl_httppost *postend;
 	struct curl_slist *slist1;
 	char errbuf[CURL_ERROR_SIZE], *uri;
-	
+
 	int is_locked = 0;
 	int is_unlisted = 0;
-	
+
 	if(*s == '/') {
 		if(s[1] != 0) {
 			if(s[1] == '/') {
@@ -643,9 +645,9 @@ void do_toot(char *s)
 			}
 		}
 	}
-	
+
 	FILE *f = fopen("/dev/null", "wb");
-	
+
 	uri = create_uri_string("api/v1/statuses");
 
 	post1 = NULL;
@@ -677,7 +679,7 @@ void do_toot(char *s)
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 
 	fclose(f);
-	
+
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
 	free(uri);
@@ -688,21 +690,21 @@ void do_toot(char *s)
 }
 
 // curlから呼び出されるHTL受信関数
-size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
+static size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 	if (size * nmemb == 0)
 		return 0;
-	
+
 	char **json = ((char **)data);
-	
+
 	size_t realsize = size * nmemb;
-	
+
 	size_t length = realsize + 1;
 	char *str = *json;
 	str = realloc(str, (str ? strlen(str) : 0) + length);
 	if(*((char **)data) == NULL) strcpy(str, "");
-	
+
 	*json = str;
-	
+
 	if (str != NULL) {
 		strncat(str, ptr, realsize);
 	}
@@ -721,12 +723,12 @@ void get_timeline(void)
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
-	
+
 	char *uri_timeline = malloc(strlen(URI_TIMELINE) + strlen(selected_timeline) + 1);
-	
+
 	strcpy(uri_timeline, URI_TIMELINE);
 	strcat(uri_timeline, selected_timeline);
-	
+
 	uri = create_uri_string(uri_timeline);
 
 	char *json = NULL;
@@ -741,7 +743,7 @@ void get_timeline(void)
 	curl_easy_setopt(hnd, CURLOPT_WRITEDATA, (void *)&json);
 	curl_easy_setopt(hnd, CURLOPT_WRITEFUNCTION, htl_callback);
 	curl_easy_setopt(hnd, CURLOPT_ERRORBUFFER, errbuf);
-	
+
 	ret = curl_easy_perform(hnd);
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 
@@ -749,13 +751,13 @@ void get_timeline(void)
 	sjson_context* ctx = sjson_create_context(0, 0, NULL);
 	struct sjson_node *jobj_from_string = sjson_decode(ctx, json);
 	sjson_tag type;
-	
+
 	type = jobj_from_string->tag;
-	
+
 	if(type == SJSON_ARRAY) {
 		for (int i = sjson_child_count(jobj_from_string) - 1; i >= 0; i--) {
 			struct sjson_node *obj = sjson_find_element(jobj_from_string, i);
-			
+
 			sbctx_t sb;
 			ninitbuf(&sb);
 
@@ -765,7 +767,7 @@ void get_timeline(void)
 			squeue_enqueue(sb);
 		}
 	}
-	
+
 	sjson_destroy_context(ctx);
 
 	curl_easy_cleanup(hnd);
@@ -780,7 +782,7 @@ void get_timeline(void)
 int main(int argc, char *argv[])
 {
 	config.profile_name[0] = 0;
-	
+
 	// オプション解析
 	for(int i=1;i<argc;i++) {
 		if(!strcmp(argv[i],"-mono")) {
@@ -808,7 +810,7 @@ int main(int argc, char *argv[])
 				return -1;
 			} else {
 				if(!strcmp(argv[i],"home")) {
-					
+
 				} else if(!strcmp(argv[i],"local")) {
 					selected_stream = "public/local";
 					selected_timeline = "public?local=true";
@@ -819,21 +821,21 @@ int main(int argc, char *argv[])
 					fprintf(stderr,"Unknown timeline %s\n", argv[i]);
 					return -1;
 				}
-				
+
 				printf("Using timeline: %s\n", selected_stream);
 			}
 		} else {
 			fprintf(stderr,"Unknown Option %s\n", argv[i]);
 		}
 	}
-	
+
 	nano_config_init(&config);
-	
+
 	char *env_lang = getenv("LANG");
 	int msg_lang = 0;
-	
+
 	if(env_lang && !strcmp(env_lang,"ja_JP.UTF-8")) msg_lang = 1;
-	
+
 	// トークンファイルオープン
 	FILE *fp = fopen(config.dot_token, "rb");
 	if(fp) {
@@ -862,7 +864,7 @@ retry1:
 		printf(">");
 		scanf("%255s", domain);
 		printf("\n");
-		
+
 		// ドメイン名を保存する
 		FILE *f2 = fopen(config.dot_domain, "wb");
 		fprintf(f2, "%s", domain);
@@ -873,11 +875,11 @@ retry1:
 			fprintf(stderr, "FATAL: Can't allocate memory. Too long filename.\n");
 			exit(EXIT_FAILURE);
 		}
-		
+
 		char json_name[256];
 		strcpy(json_name, dot_ckcs);
 		strcpy(domain_string, domain);
-		
+
 		// クライアントキーファイルをオープン
 		FILE *ckcs = fopen(json_name, "rb");
 		if(!ckcs) {
@@ -887,7 +889,7 @@ retry1:
 			// あったら閉じる
 			fclose(ckcs);
 		}
-		
+
 		// クライアントキーファイルを読む
 		struct sjson_context *ctx;
 		char *json;
@@ -907,12 +909,12 @@ retry1:
 
 		sjson_destroy_context(ctx);
 		free(json);
-		
+
 		char code[256];
-		
+
 		printf("%s", nano_msg_list[msg_lang][NANO_MSG_AUTHCATION]);
 		printf("%s", nano_msg_list[msg_lang][NANO_MSG_OAUTH_URL]);
-		
+
 		// 認証用URLを表示、コードを入力させる
 		printf("https://%s/oauth/authorize?client_id=%s&response_type=code&redirect_uri=urn:ietf:wg:oauth:2.0:oob&scope=read%%20write%%20follow\n", domain, ck);
 		printf(">");
@@ -921,7 +923,7 @@ retry1:
 
 		// 改行読み飛ばし
 		getchar();
-		
+
 		// 承認コードで認証
 		do_oauth(code, ck, cs);
 		free(ck);
@@ -949,7 +951,7 @@ retry1:
 	}
 
 	setlocale(LC_ALL, "");
-	
+
 	pthread_mutex_init(&prompt_mutex, NULL);
 	squeue_init();
 #ifdef USE_SIXEL
@@ -958,11 +960,11 @@ retry1:
 
 	pthread_t stream_thread;
 	pthread_t prompt_thread;
-	
+
 	// ストリーミングスレッド生成
 	pthread_create(&stream_thread, NULL, stream_thread_func, NULL);
 	pthread_create(&prompt_thread, NULL, prompt_thread_func, NULL);
-	
+
 	while (1)
 	{
 		sbctx_t sb;
@@ -990,7 +992,7 @@ retry1:
 					if(p1[1] == 'n') {
 						*p2 = '\n';
 						p1++;
-					} 
+					}
 				} else {
 					*p2 = *p1;
 				}

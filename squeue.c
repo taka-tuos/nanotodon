@@ -19,7 +19,7 @@ int squeue_enqueue(sbctx_t enq_data)
 	pthread_mutex_lock(&queue_mutex);
 	//waddstr(scr, "en_lock");
 	//wrefresh(scr);
-	
+
     if (queue_num < QUEUE_SIZE) {
         queue_data[(queue_head + queue_num) % QUEUE_SIZE] = enq_data;
         queue_num++;

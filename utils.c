@@ -67,7 +67,7 @@ void curl_fatal(CURLcode ret, const char *errbuf)
 		fprintf(stderr, "%s\n", curl_easy_strerror(ret));
 	}
 	exit(EXIT_FAILURE);
-} 
+}
 
 // domain_stringとapiエンドポイントを合成してURLを生成する
 char *create_uri_string(char *api)
@@ -110,19 +110,19 @@ int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **d
 	int exist = 1;
 	char *next_key;
 	char last_key[256];
-	
+
 	char *tok = dup;
-	
+
 	// 現在地ノードが存在する限りループ
 	while(exist) {
 		// 次のノード名を取り出す
 		next_key = strtok(tok, "/");
 		tok = NULL;
-		
+
 		// パスの終端(=目的のオブジェクトに到達している)ならループを抜ける
 		if(!next_key) break;
 		strcpy(last_key, next_key);
-		
+
 		// 次のノードを取得する
 
 		struct sjson_node *next = sjson_find_member(dir, next_key);
@@ -134,13 +134,13 @@ int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **d
 			dir = next;
 		}
 	}
-	
+
 	// strtok用バッファ解放
 	free(dup);
-	
+
 	// 現在地を結果ポインタに代入
 	*dst = dir;
-	
+
 	// 見つかったかどうかを返却
 	return exist;
 }
@@ -154,10 +154,10 @@ size_t buffer_writer(char *ptr, size_t size, size_t nmemb, void *stream) {
     }
 
     if (!buf->data) {
-        buf->data = (char *)malloc(block);
+        buf->data = malloc(block);
     }
     else {
-        buf->data = (char *)realloc(buf->data, buf->data_size + block);
+        buf->data = realloc(buf->data, buf->data_size + block);
     }
 
     if (buf->data) {

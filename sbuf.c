@@ -53,7 +53,7 @@ init_pair(5, COLOR_BLUE, -1);
 void nattron(sbctx_t *sbctx, int n)
 {
 	if(n & A_BOLD) nputbuf(sbctx, "\e[1m", 4);
-	
+
 	if(monoflag) return;
 
 	if((n & 7) > 0 && (n & 7) < 5) {

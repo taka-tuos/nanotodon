@@ -7,6 +7,6 @@
 #define SIXEL_MUL_ICO 4
 
 void print_picture(sbctx_t *sbctx, char *uri, int mul);
-void sixel_init();
+void sixel_init(void);
 
 #endif
