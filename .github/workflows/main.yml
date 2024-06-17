@@ -52,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [386, arm, arm64]
+        arch: [386, arm, arm64, s390x]
         include:
           - arch: 386
             image: i386/ubuntu:latest
@@ -63,6 +63,9 @@ jobs:
           - arch: arm64
             image: arm64v8/ubuntu:latest
             platform: linux/arm64
+          - arch: s390x
+            image: s390x/ubuntu:latest
+            platform: linux/s390x
 
     steps:
       - uses: actions/checkout@v4
