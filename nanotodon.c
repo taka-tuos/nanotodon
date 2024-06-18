@@ -503,8 +503,8 @@ void do_create_client(char *domain, char *dot_ckcs)
 {
 	CURLcode ret;
 	CURL *hnd;
-	struct curl_httppost *post1;
-	struct curl_httppost *postend;
+	curl_mime *mime;
+	curl_mimepart *part;
 	char errbuf[CURL_ERROR_SIZE];
 
 	char json_name[256], *uri;
@@ -516,26 +516,22 @@ void do_create_client(char *domain, char *dot_ckcs)
 	// クライアントキーファイルをオープン
 	FILE *f = fopen(json_name, "wb");
 
-	post1 = NULL;
-	postend = NULL;
 	memset(errbuf, 0, sizeof errbuf);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "client_name",
-				CURLFORM_COPYCONTENTS, "nanotodon",
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "redirect_uris",
-				CURLFORM_COPYCONTENTS, "urn:ietf:wg:oauth:2.0:oob",
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "scopes",
-				CURLFORM_COPYCONTENTS, "read write follow",
-				CURLFORM_END);
 
 	hnd = curl_easy_init();
+	mime = curl_mime_init(hnd);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "client_name");
+	curl_mime_data(part, "nanotodon", CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "redirect_uris");
+	curl_mime_data(part, "urn:ietf:wg:oauth:2.0:oob", CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "scopes");
+	curl_mime_data(part, "read write follow", CURL_ZERO_TERMINATED);
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
-	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
+	curl_easy_setopt(hnd, CURLOPT_MIMEPOST, mime);
 	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
@@ -548,11 +544,11 @@ void do_create_client(char *domain, char *dot_ckcs)
 
 	fclose(f);
 
+	curl_mime_free(mime);
+	mime = NULL;
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
 	free(uri);
-	curl_formfree(post1);
-	post1 = NULL;
 }
 
 // 承認コードを使ったOAuth処理
@@ -566,40 +562,34 @@ void do_oauth(char *code, char *ck, char *cs)
 
 	CURLcode ret;
 	CURL *hnd;
-	struct curl_httppost *post1;
-	struct curl_httppost *postend;
+	curl_mime *mime;
+	curl_mimepart *part;
 	char errbuf[CURL_ERROR_SIZE], *uri;
 
-	post1 = NULL;
-	postend = NULL;
 	memset(errbuf, 0, sizeof errbuf);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "grant_type",
-				CURLFORM_COPYCONTENTS, "authorization_code",
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "redirect_uri",
-				CURLFORM_COPYCONTENTS, "urn:ietf:wg:oauth:2.0:oob",
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "client_id",
-				CURLFORM_COPYCONTENTS, ck,
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "client_secret",
-				CURLFORM_COPYCONTENTS, cs,
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "code",
-				CURLFORM_COPYCONTENTS, code,
-				CURLFORM_END);
 
 	uri = create_uri_string("oauth/token");
 
 	hnd = curl_easy_init();
+	mime = curl_mime_init(hnd);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "grant_type");
+	curl_mime_data(part, "authorization_code", CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "redirect_uri");
+	curl_mime_data(part, "urn:ietf:wg:oauth:2.0:oob", CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "client_id");
+	curl_mime_data(part, ck, CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "client_secret");
+	curl_mime_data(part, cs, CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "code");
+	curl_mime_data(part, code, CURL_ZERO_TERMINATED);
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
-	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
+	curl_easy_setopt(hnd, CURLOPT_MIMEPOST, mime);
 	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
 	curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
@@ -612,11 +602,11 @@ void do_oauth(char *code, char *ck, char *cs)
 
 	fclose(f);
 
+	curl_mime_free(mime);
+	mime = NULL;
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
 	free(uri);
-	curl_formfree(post1);
-	post1 = NULL;
 }
 
 // Tootを行う
@@ -624,8 +614,8 @@ void do_toot(char *s)
 {
 	CURLcode ret;
 	CURL *hnd;
-	struct curl_httppost *post1;
-	struct curl_httppost *postend;
+	curl_mime *mime;
+	curl_mimepart *part;
 	struct curl_slist *slist1;
 	char errbuf[CURL_ERROR_SIZE], *uri;
 
@@ -650,24 +640,21 @@ void do_toot(char *s)
 
 	uri = create_uri_string("api/v1/statuses");
 
-	post1 = NULL;
-	postend = NULL;
 	memset(errbuf, 0, sizeof errbuf);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "status",
-				CURLFORM_COPYCONTENTS, s,
-				CURLFORM_END);
-	curl_formadd(&post1, &postend,
-				CURLFORM_COPYNAME, "visibility",
-				CURLFORM_COPYCONTENTS, is_locked ? "private" : (is_unlisted ? "unlisted" : "public"),
-				CURLFORM_END);
 	slist1 = NULL;
 	slist1 = curl_slist_append(slist1, access_token);
 
 	hnd = curl_easy_init();
+	mime = curl_mime_init(hnd);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "status");
+	curl_mime_data(part, s, CURL_ZERO_TERMINATED);
+	part = curl_mime_addpart(mime);
+	curl_mime_name(part, "visibility");
+	curl_mime_data(part, is_locked ? "private" : (is_unlisted ? "unlisted" : "public"), CURL_ZERO_TERMINATED);
 	curl_easy_setopt(hnd, CURLOPT_URL, uri);
 	curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
-	curl_easy_setopt(hnd, CURLOPT_HTTPPOST, post1);
+	curl_easy_setopt(hnd, CURLOPT_MIMEPOST, mime);
 	curl_easy_setopt(hnd, CURLOPT_USERAGENT, CURL_USERAGENT);
 	curl_easy_setopt(hnd, CURLOPT_HTTPHEADER, slist1);
 	curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
@@ -680,11 +667,11 @@ void do_toot(char *s)
 
 	fclose(f);
 
+	curl_mime_free(mime);
+	mime = NULL;
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
 	free(uri);
-	curl_formfree(post1);
-	post1 = NULL;
 	curl_slist_free_all(slist1);
 	slist1 = NULL;
 }
