@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        container: [ "ubuntu:22.04", "ubuntu:latest", "debian:12", "debian:11", "archlinux:base" ]
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: ${{ matrix.container }}
+      options: --privileged
+
+    steps:
+      - name: install packages
+        run: |
+          uname -a
+          case "${{ matrix.container }}" in
+          ubuntu*|debian*)
+            apt-get update -q
+            apt-get upgrade -qy
+            apt-get install -qy make gcc libcurl4-openssl-dev libwebp-dev
+            ;;
+          archlinux*)
+            pacman -Syyu --noconfirm make gcc curl libwebp
+            ;;
+          esac
+
+      - uses: actions/checkout@v4
+
+      - name: make
+        run: |
+          echo Build default
+          make clean
+          make
+          echo Build with USE_SIXEL
+          make clean
+          CFLAGS="-DUSE_SIXEL" make
+          echo Build with USE_WEBP
+          make clean
+          CFLAGS="-DUSE_WEBP" LDLIBS="-lwebp" make
+
+  build-linux-qemu:
+    name: "build-linux qemu"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [386, arm, arm64, s390x]
+        include:
+          - arch: 386
+            image: i386/ubuntu:latest
+            platform: linux/386
+          - arch: arm
+            image: arm32v7/ubuntu:latest
+            platform: linux/arm/v7
+          - arch: arm64
+            image: arm64v8/ubuntu:latest
+            platform: linux/arm64
+          - arch: s390x
+            image: s390x/ubuntu:latest
+            platform: linux/s390x
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ matrix.arch }}
+
+      - name: Run build process with Docker
+        uses: addnab/docker-run-action@v3
+        with:
+          image: ${{ matrix.image }}
+          options: |
+            --privileged
+            --platform ${{ matrix.platform }}
+            --volume ${{ github.workspace }}:/build
+            --workdir /build
+          run: |
+            uname -a
+            apt-get update -q
+            apt-get upgrade -qy
+            apt-get install -qy make gcc libcurl4-openssl-dev libwebp-dev
+            echo Build default
+            make clean
+            make
+            echo Build with USE_SIXEL
+            make clean
+            CFLAGS="-DUSE_SIXEL" make
+            echo Build with USE_WEBP
+            make clean
+            CFLAGS="-DUSE_WEBP" LDLIBS="-lwebp" make
+
+  build-netbsd:
+    name: "build-netbsd (NetBSD/amd64 10.0 with pkgsrc)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages and run configure and make (on the NetBSD VM)
+        uses: vmactions/netbsd-vm@v1
+        with:
+          release: "10.0"
+          usesh: true
+          copyback: false
+          prepare: |
+            uname -a
+            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/X11R7/bin:/usr/pkg/bin:/usr/pkg/sbin:/usr/games:/usr/local/bin:/usr/local/sbin
+            export PATH
+            pkg_add -u curl libwebp
+
+          run: |
+            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/X11R7/bin:/usr/pkg/bin:/usr/pkg/sbin:/usr/games:/usr/local/bin:/usr/local/sbin
+            export PATH
+            echo Build default
+            make clean
+            CFLAGS="-I/usr/pkg/include" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make
+            echo Build with USE_SIXEL
+            make clean
+            CFLAGS="-I/usr/pkg/include -DUSE_SIXEL" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make
+            echo Build with USE_WEBP
+            make clean
+            CFLAGS="-I/usr/pkg/include -DUSE_WEBP" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" LDLIBS="-lwebp" make
+
+  build-openbsd:
+    name: "build-openbsd (OpenBSD/amd64 7.5 with ports)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages and run configure and make (on the OpenBSD VM)
+        uses: vmactions/openbsd-vm@v1
+        with:
+          release: "7.5"
+          usesh: true
+          copyback: false
+          prepare: |
+            uname -a
+            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin
+            export PATH
+            pkg_add curl libwebp
+
+          run: |
+            echo Build default
+            make clean
+            CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" make
+            echo Build with USE_SIXEL
+            make clean
+            CFLAGS="-I/usr/local/include -DUSE_SIXEL" LDFLAGS="-L/usr/local/lib" make
+            echo Build with USE_WEBP
+            make clean
+            CFLAGS="-I/usr/local/include -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
+
+  build-freesd:
+    name: "build-freebsd (FreeBSD/amd64 14.0 with ports)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages and run configure and make (on the FreeBSD VM)
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.0"
+          usesh: true
+          copyback: false
+          prepare: |
+            uname -a
+            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
+            export PATH
+            pkg install -y curl webp
+
+          run: |
+            echo Build default
+            make clean
+            CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib" make
+            echo Build with USE_SIXEL
+            make clean
+            CFLAGS="-I/usr/local/include -DUSE_SIXEL" LDFLAGS="-L/usr/local/lib" make
+            echo Build with USE_WEBP
+            make clean
+            CFLAGS="-I/usr/local/include -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
