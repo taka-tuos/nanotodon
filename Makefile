@@ -2,7 +2,7 @@ TARGET = nanotodon
 OBJS = nanotodon.o sbuf.o squeue.o sixel.o utils.o config.o messages.o
 
 # To use both XPG4 strptime(3) and GNU timegm(3)
-CFLAGS += -D_GNU_SOURCE -D_BSD_SOURCE -D_NETBSD_SOURCE
+CFLAGS += -D_GNU_SOURCE
 
 LDLIBS += -lcurl -lpthread -lm
 
