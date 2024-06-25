@@ -2,6 +2,8 @@
 #include "utils.h"
 #include <curl/curl.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 
 #ifdef USE_WEBP
 #include <webp/decode.h>
@@ -16,6 +18,11 @@ char *errpic_six_pic;
 char *errpic_six_ico;
 char *palinit_six;
 
+int indent_icon;
+static int mul_icon;
+#define DEF_FONT_WIDTH	7
+#define DEF_FONT_HEIGHT	14
+
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
 
 void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
@@ -24,6 +31,33 @@ void sixel_init()
 {
     sbctx_t sb_errpic;
     sbctx_t sb_palinit;
+    struct winsize ws;
+    int fontwidth, fontheight;
+    int err;
+
+    // ウインドウサイズからフォントサイズサイズを算出（ロジックはsayakaから）
+    fontwidth  = 0;
+    fontheight = 0;
+    err = ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+    if (err == 0) {
+        if (ws.ws_col != 0) {
+            fontwidth = ws.ws_xpixel / ws.ws_col;
+        }
+        if (ws.ws_row != 0) {
+            fontheight = ws.ws_ypixel / ws.ws_row;
+        }
+    }
+    if (fontwidth == 0) {
+        fontwidth = DEF_FONT_WIDTH;
+    }
+    if (fontheight == 0) {
+        fontheight = DEF_FONT_HEIGHT;
+    }
+
+    // アイコンサイズというかアイコンsixel単位を2行以上3行未満に設定
+    mul_icon = (fontheight * 3 - 1) / 6;
+    // アイコン横幅分相当のインデント文字数
+    indent_icon = ((6 * mul_icon) + fontwidth - 1) / fontwidth;
 
     ninitbuf(&sb_palinit);
 
@@ -82,7 +116,7 @@ void sixel_init()
 		int ix, iy, ic;
 		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
 
-		sixel_out(&sb_errpic, ix, iy, ic, ib, SIXEL_MUL_ICO);
+		sixel_out(&sb_errpic, ix, iy, ic, ib, mul_icon);
 
 		nflushcache(&sb_errpic);
 
@@ -141,6 +175,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
         if(mul == SIXEL_MUL_PIC) naddstr(sbctx, errpic_six_pic);
 		else if(mul == SIXEL_MUL_ICO) naddstr(sbctx, errpic_six_ico);
 	} else {
+        if(mul == SIXEL_MUL_ICO) mul = mul_icon;
         sixel_out(sbctx, ix, iy, ic, ib, mul);
     }
 
