@@ -153,6 +153,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
     if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
 
 	uint32_t mnsfw = mul & 0x100 ? 0xfffffffc : 0xffffffff;
+	uint32_t delta = mul & 0x100 ? 4 : 1;
 	mul &= 0xff;
 
 	int sh = 6 * mul;
@@ -180,10 +181,10 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 	for(int y = 0; y < sh; y++) {
 		for(int x = 0; x < sw; x++) {
 			int ay = (y & mnsfw) * iy / sh;
-			int by = ((y & mnsfw) + 1) * iy / sh;
+			int by = ((y & mnsfw) + delta) * iy / sh;
 
 			int ax = (x & mnsfw) * ix / sw;
-			int bx = ((x & mnsfw) + 1) * ix / sw;
+			int bx = ((x & mnsfw) + delta) * ix / sw;
 
 			int cnt = 0;
 			int rgba[4] = { 0 };
