@@ -19,7 +19,6 @@ char *errpic_six_ico;
 char *palinit_six;
 
 int indent_icon;
-static int mul_icon;
 #define DEF_FONT_WIDTH	7
 #define DEF_FONT_HEIGHT	14
 
@@ -54,10 +53,8 @@ void sixel_init()
         fontheight = DEF_FONT_HEIGHT;
     }
 
-    // アイコンサイズというかアイコンsixel単位を2行以上3行未満に設定
-    mul_icon = (fontheight * 3 - 1) / 6;
     // アイコン横幅分相当のインデント文字数
-    indent_icon = ((6 * mul_icon) + fontwidth - 1) / fontwidth;
+    indent_icon = ((6 * SIXEL_MUL_ICO) + fontwidth) / fontwidth;
 
     ninitbuf(&sb_palinit);
 
@@ -116,7 +113,7 @@ void sixel_init()
 		int ix, iy, ic;
 		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
 
-		sixel_out(&sb_errpic, ix, iy, ic, ib, mul_icon);
+		sixel_out(&sb_errpic, ix, iy, ic, ib, SIXEL_MUL_ICO);
 
 		nflushcache(&sb_errpic);
 
@@ -175,7 +172,6 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
         if(mul == SIXEL_MUL_PIC) naddstr(sbctx, errpic_six_pic);
 		else if(mul == SIXEL_MUL_ICO) naddstr(sbctx, errpic_six_ico);
 	} else {
-        if(mul == SIXEL_MUL_ICO) mul = mul_icon;
         sixel_out(sbctx, ix, iy, ic, ib, mul);
     }
 
