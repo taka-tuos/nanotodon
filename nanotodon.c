@@ -25,7 +25,7 @@ char *streaming_json = NULL;
 #define URI_TIMELINE "api/v1/timelines/"
 
 char *selected_stream = "user";
-char *selected_timeline = "home";
+char *selected_timeline = "home?limit=5";
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
