@@ -25,7 +25,9 @@ char *streaming_json = NULL;
 #define URI_TIMELINE "api/v1/timelines/"
 
 char *selected_stream = "user";
-char *selected_timeline = "home?limit=5";
+char *selected_timeline = "home";
+char append_timeline[64];
+int limit_timeline = 20;
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
@@ -711,10 +713,13 @@ void get_timeline(void)
 	slist1 = curl_slist_append(slist1, access_token);
 	memset(errbuf, 0, sizeof errbuf);
 
-	char *uri_timeline = malloc(strlen(URI_TIMELINE) + strlen(selected_timeline) + 1);
+	char *uri_timeline = malloc(strlen(URI_TIMELINE) + strlen(selected_timeline) + (1 + 5 + 1 + 2 /*? limit = xx*/) + 1);
+
+	sprintf(append_timeline, "?limit=%d", limit_timeline);
 
 	strcpy(uri_timeline, URI_TIMELINE);
 	strcat(uri_timeline, selected_timeline);
+	strcat(uri_timeline, append_timeline);
 
 	uri = create_uri_string(uri_timeline);
 
@@ -789,6 +794,17 @@ int main(int argc, char *argv[])
 			} else {
 				strcpy(config.profile_name,argv[i]);
 				printf("Using profile: %s\n", config.profile_name);
+			}
+		} else if(!strncmp(argv[i],"-tllimit",8)) {
+			i++;
+			if(i >= argc) {
+				fprintf(stderr,"too few argments\n");
+				return -1;
+			} else {
+				limit_timeline = atoi(argv[i]);
+				if(limit_timeline < 0) limit_timeline = 0;
+				if(limit_timeline > 40) limit_timeline = 40;
+				printf("Timeline limit: %d\n", limit_timeline);
 			}
 		} else if(!strncmp(argv[i],"-timeline",9)) {
 			i++;
