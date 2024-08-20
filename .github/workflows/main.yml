@@ -109,17 +109,12 @@ jobs:
         uses: vmactions/netbsd-vm@v1
         with:
           release: "10.0"
-          usesh: true
           copyback: false
           prepare: |
             uname -a
-            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/X11R7/bin:/usr/pkg/bin:/usr/pkg/sbin:/usr/games:/usr/local/bin:/usr/local/sbin
-            export PATH
             pkg_add -u curl libwebp
 
           run: |
-            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/X11R7/bin:/usr/pkg/bin:/usr/pkg/sbin:/usr/games:/usr/local/bin:/usr/local/sbin
-            export PATH
             echo Build default
             make clean
             CFLAGS="-I/usr/pkg/include" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make
@@ -140,12 +135,9 @@ jobs:
         uses: vmactions/openbsd-vm@v1
         with:
           release: "7.5"
-          usesh: true
           copyback: false
           prepare: |
             uname -a
-            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/X11R6/bin:/usr/local/bin:/usr/local/sbin
-            export PATH
             pkg_add curl libwebp
 
           run: |
@@ -169,12 +161,9 @@ jobs:
         uses: vmactions/freebsd-vm@v1
         with:
           release: "14.0"
-          usesh: true
           copyback: false
           prepare: |
             uname -a
-            PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin
-            export PATH
             pkg install -y curl webp
 
           run: |
