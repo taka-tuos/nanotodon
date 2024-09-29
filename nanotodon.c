@@ -167,6 +167,10 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 	struct tm tm;
 	time_t time;
 	char datebuf[DATEBUFLEN];
+#ifdef USE_SIXEL
+	char escbuf[2 + 2 + 1 + 1];	/* ESC + [ + 2digits + C + NUL */
+#endif
+
 	if(!jobj_from_string) return;
 
 #ifdef USE_SIXEL
@@ -226,7 +230,11 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 
 #ifdef USE_SIXEL
 	print_picture(sbctx, avatar->string_, SIXEL_MUL_ICO);
-	naddstr(sbctx, "\n");
+	// 1行上に移動
+	naddstr(sbctx, "\e[1A");
+	// アイコン幅分だけ右に移動
+	snprintf(escbuf, sizeof escbuf, "\e[%dC", indent_icon);
+	naddstr(sbctx, escbuf);
 #endif
 
 	// 誰からか[ screen_name(display_name) ]を表示

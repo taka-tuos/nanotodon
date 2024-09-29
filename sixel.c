@@ -2,6 +2,8 @@
 #include "utils.h"
 #include <curl/curl.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 
 #ifdef USE_WEBP
 #include <webp/decode.h>
@@ -16,6 +18,10 @@ char *errpic_six_pic;
 char *errpic_six_ico;
 char *palinit_six;
 
+int indent_icon;
+#define DEF_FONT_WIDTH	7
+#define DEF_FONT_HEIGHT	14
+
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
 
 void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
@@ -24,6 +30,31 @@ void sixel_init()
 {
     sbctx_t sb_errpic;
     sbctx_t sb_palinit;
+    struct winsize ws;
+    int fontwidth, fontheight;
+    int err;
+
+    // ウインドウサイズからフォントサイズサイズを算出（ロジックはsayakaから）
+    fontwidth  = 0;
+    fontheight = 0;
+    err = ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+    if (err == 0) {
+        if (ws.ws_col != 0) {
+            fontwidth = ws.ws_xpixel / ws.ws_col;
+        }
+        if (ws.ws_row != 0) {
+            fontheight = ws.ws_ypixel / ws.ws_row;
+        }
+    }
+    if (fontwidth == 0) {
+        fontwidth = DEF_FONT_WIDTH;
+    }
+    if (fontheight == 0) {
+        fontheight = DEF_FONT_HEIGHT;
+    }
+
+    // アイコン横幅分相当のインデント文字数
+    indent_icon = ((6 * SIXEL_MUL_ICO) + fontwidth) / fontwidth;
 
     ninitbuf(&sb_palinit);
 

@@ -9,4 +9,5 @@
 void print_picture(sbctx_t *sbctx, char *uri, int mul);
 void sixel_init(void);
 
+extern int indent_icon;
 #endif
