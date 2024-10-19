@@ -226,7 +226,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 
 #ifdef USE_SIXEL
 	print_picture(sbctx, avatar->string_, SIXEL_MUL_ICO);
-	naddstr(sbctx, "\n");
+	//naddstr(sbctx, "\n");
 #endif
 
 	// 誰からか[ screen_name(display_name) ]を表示
@@ -379,7 +379,7 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		}
 	}
 
-	naddstr(sbctx,  "\n");
+	naddstr(sbctx, "\n\n");
 	//wrefresh(scr);
 
 	/*wmove(pad, pad_x, pad_y);

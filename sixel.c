@@ -253,7 +253,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 				int r = sb[(i * sw + x) * 4 + 0];
 				int g = sb[(i * sw + x) * 4 + 1];
 				int b = sb[(i * sw + x) * 4 + 2];
-				dat[x] |= (((((r + b) >> 1) + b) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 1 << j : 0;
+				dat[x] |= (((((r + b) >> 1) + g) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 0 : 1 << j;
 #endif
 #else
 				int d =
@@ -277,9 +277,9 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 #else
 			char str[8];
 			sprintf(str, "0!%d", sw);
-			naddstr(sbctx, str);
+			//naddstr(sbctx, str);
 
-			naddstr(sbctx, "$#1");
+			naddstr(sbctx, "0");
 #endif
 #else
 			char str[4];
