@@ -109,10 +109,76 @@ stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, i
 }
 #endif
 
+unsigned int crc32b(unsigned char *message, int maxlen)
+{
+	int i, j;
+	unsigned int byte, crc, mask;
+
+	i = 0;
+	crc = 0xFFFFFFFF;
+	while(message[i] && i < maxlen) {
+		byte = message[i];            // Get next byte.
+		crc = crc ^ byte;
+		for (j = 7; j >= 0; j--) {    // Do eight times.
+			mask = -(crc & 1);
+			crc = (crc >> 1) ^ (0xEDB88320 & mask);
+		}
+		i++;
+	}
+	return ~crc;
+}
+
+// outはchar[>17]であること
+void generate_hash(char *uri, char *out)
+{
+	int len = strlen(uri) >> 1;
+
+	unsigned int hash1 = crc32b(uri, len);
+	unsigned int hash2 = crc32b(uri + len, len);
+
+	for(int i = 0; i < 4; i++) {
+		out[i*2+0] = "0123456789abcdef"[(hash1 >> (i * 8 + 0)) & 15];
+		out[i*2+1] = "0123456789abcdef"[(hash1 >> (i * 8 + 4)) & 15];
+	}
+
+	for(int i = 0; i < 4; i++) {
+		out[i*2+8] = "0123456789abcdef"[(hash2 >> (i * 8 + 0)) & 15];
+		out[i*2+9] = "0123456789abcdef"[(hash2 >> (i * 8 + 0)) & 15];
+	}
+}
+
 void print_picture(sbctx_t *sbctx, char *uri, int mul)
 {
 	CURL *curl;
     struct rawBuffer *buf;
+
+	char cpath[] = "cache/                .six";
+
+	generate_hash(uri, cpath + 6);
+
+	FILE *cfp;
+
+	if(cfp = fopen(cpath, "rb")) {
+		nputbuf(sbctx, "cache HIT!\n", 12);
+
+		int len;
+
+		fread(&len, 4, 1, cfp);
+
+		void *p = malloc(len);
+
+		fread(p, len, 1, cfp);
+
+		fclose(cfp);
+
+		nputbuf(sbctx, p, len);
+
+		free(p);
+
+		return;
+	}
+
+	nputbuf(sbctx, "cache MISS.\n", 12);
 
     buf = (struct rawBuffer *)malloc(sizeof(struct rawBuffer));
     buf->data = NULL;
@@ -139,12 +205,26 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 #endif
 	}
 
+	sbctx_t sb2;
+	ninitbuf(&sb2);
+
 	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) {
-        if(mul == SIXEL_MUL_PIC) naddstr(sbctx, errpic_six_pic);
-		else if(mul == SIXEL_MUL_ICO) naddstr(sbctx, errpic_six_ico);
+        if(mul == SIXEL_MUL_PIC) naddstr(&sb2, errpic_six_pic);
+		else if(mul == SIXEL_MUL_ICO) naddstr(&sb2, errpic_six_ico);
 	} else {
-        sixel_out(sbctx, ix, iy, ic, ib, mul);
+        sixel_out(&sb2, ix, iy, ic, ib, mul);
     }
+
+	nflushcache(&sb2);
+
+	nputbuf(sbctx, sb2.buf, sb2.bufptr);
+
+	FILE *fp = fopen(cpath, "wb");
+	fwrite(&(sb2.bufptr), 4, 1, fp);
+	fwrite(sb2.buf, sb2.bufptr, 1, fp);
+	fclose(fp);
+
+	free(sb2.buf);
 
     free(buf->data);
     free(buf);
