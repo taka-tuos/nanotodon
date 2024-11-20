@@ -12,6 +12,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include "err.png.h"
+
 char *errpic_six_pic;
 char *errpic_six_ico;
 char *palinit_six;
@@ -66,7 +68,7 @@ void sixel_init()
 		ninitbuf(&sb_errpic);
 
 		int ix, iy, ic;
-		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
+		stbi_uc *ib = stbi_load_from_memory((const stbi_uc *)err_png, err_png_len, &ix, &iy, &ic, 4);
 
 		sixel_out(&sb_errpic, ix, iy, ic, ib, SIXEL_MUL_PIC);
 
@@ -80,7 +82,7 @@ void sixel_init()
 		ninitbuf(&sb_errpic);
 
 		int ix, iy, ic;
-		stbi_uc *ib = stbi_load("err.png", &ix, &iy, &ic, 4);
+		stbi_uc *ib = stbi_load_from_memory((const stbi_uc *)err_png, err_png_len, &ix, &iy, &ic, 4);
 
 		sixel_out(&sb_errpic, ix, iy, ic, ib, SIXEL_MUL_ICO);
 
