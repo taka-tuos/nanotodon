@@ -12,6 +12,7 @@
 #define SJSON_IMPLEMENT
 #include "sjson.h"
 
+#include "nanotodon.h"
 #include "config.h"
 #include "messages.h"
 #include "sbuf.h"
