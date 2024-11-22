@@ -1,5 +1,6 @@
 #include "sixel.h"
 #include "utils.h"
+#include "config.h"
 #include <curl/curl.h>
 #include <string.h>
 
@@ -23,6 +24,11 @@
 char *errpic_six_pic;
 char *errpic_six_ico;
 char *palinit_six;
+
+extern struct nanotodon_config config;
+
+char cpath_buffer[512];
+char *cpath_ptr;
 
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
 
@@ -69,6 +75,8 @@ void sixel_init()
     palinit_six = sb_palinit.buf;
     palinit_six[sb_palinit.bufptr] = 0;
 
+	strcpy(cpath_buffer, config.cache_dir);
+	cpath_ptr = cpath_buffer + strlen(config.cache_dir);
 
 	{
 		ninitbuf(&sb_errpic);
@@ -158,13 +166,18 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	CURL *curl;
     struct rawBuffer *buf;
 
-	char cpath[] = "cache/                .six";
+	char cpath[] = "/                .six";
 
-	generate_hash(uri, cpath + 6);
+	generate_hash(uri, cpath + 1);
+
+	strcpy(cpath_ptr, cpath);
+
+	printf("rel cpath : %s\n", cpath);
+	printf("abs cpath : %s\n", cpath_buffer);
 
 	FILE *cfp;
 
-	if(cfp = fopen(cpath, "rb")) {
+	if(cfp = fopen(cpath_buffer, "rb")) {
 		nputbuf(sbctx, "cache HIT!\n", 12);
 
 		int len;
@@ -225,10 +238,12 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	nputbuf(sbctx, sb2.buf, sb2.bufptr);
 
-	FILE *fp = fopen(cpath, "wb");
-	fwrite(&(sb2.bufptr), 4, 1, fp);
-	fwrite(sb2.buf, sb2.bufptr, 1, fp);
-	fclose(fp);
+	FILE *fp = fopen(cpath_buffer, "wb");
+	if(fp != 0) {
+		fwrite(&(sb2.bufptr), 4, 1, fp);
+		fwrite(sb2.buf, sb2.bufptr, 1, fp);
+		fclose(fp);
+	}
 
 	free(sb2.buf);
 
