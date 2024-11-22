@@ -308,7 +308,7 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 		{63, 31, 55, 23, 61, 29, 53, 21}
 	};
 
-	naddstr(sbctx, "\ePq");
+	naddstr(sbctx, "\eP7;q");
 
     naddstr(sbctx, palinit_six);
 
