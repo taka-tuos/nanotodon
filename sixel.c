@@ -172,13 +172,13 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	strcpy(cpath_ptr, cpath);
 
-	printf("rel cpath : %s\n", cpath);
-	printf("abs cpath : %s\n", cpath_buffer);
+	//printf("rel cpath : %s\n", cpath);
+	//printf("abs cpath : %s\n", cpath_buffer);
 
 	FILE *cfp;
 
 	if(cfp = fopen(cpath_buffer, "rb")) {
-		nputbuf(sbctx, "cache HIT!\n", 12);
+		//nputbuf(sbctx, "cache HIT!\n", 12);
 
 		int len;
 
@@ -197,7 +197,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 		return;
 	}
 
-	nputbuf(sbctx, "cache MISS.\n", 12);
+	//nputbuf(sbctx, "cache MISS.\n", 12);
 
     buf = (struct rawBuffer *)malloc(sizeof(struct rawBuffer));
     buf->data = NULL;
