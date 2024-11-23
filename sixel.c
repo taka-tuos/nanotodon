@@ -348,16 +348,16 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 			for(int i = y * 6, j = 0; j < 6; i++, j++) {
 #ifndef USE_RGB222
 				if (!monoflag) {
-				int d =
-					((sb[(i * sw + x) * 4 + 0] >> 2) >= dither_bayer[i&7][x&7] ? 1 : 0) |
-					((sb[(i * sw + x) * 4 + 1] >> 2) >= dither_bayer[i&7][x&7] ? 2 : 0) |
-					((sb[(i * sw + x) * 4 + 2] >> 2) >= dither_bayer[i&7][x&7] ? 4 : 0);
-				dat[d * dw + x] |= 1 << j;
+					int d =
+						((sb[(i * sw + x) * 4 + 0] >> 2) >= dither_bayer[i&7][x&7] ? 1 : 0) |
+						((sb[(i * sw + x) * 4 + 1] >> 2) >= dither_bayer[i&7][x&7] ? 2 : 0) |
+						((sb[(i * sw + x) * 4 + 2] >> 2) >= dither_bayer[i&7][x&7] ? 4 : 0);
+					dat[d * dw + x] |= 1 << j;
 				} else {
-				int r = sb[(i * sw + x) * 4 + 0];
-				int g = sb[(i * sw + x) * 4 + 1];
-				int b = sb[(i * sw + x) * 4 + 2];
-				dat[x] |= (((((r + b) >> 1) + g) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 0 : 1 << j;
+					int r = sb[(i * sw + x) * 4 + 0];
+					int g = sb[(i * sw + x) * 4 + 1];
+					int b = sb[(i * sw + x) * 4 + 2];
+					dat[x] |= (((((r + b) >> 1) + g) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 0 : 1 << j;
 				}
 #else
 				int d =
