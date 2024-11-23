@@ -379,7 +379,11 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 			if (!monoflag) {
 				naddch(sbctx, '0' + i);
 			} else {
-				naddstr(sbctx, "0");
+				char str[8];
+				sprintf(str, "1!%d~$", sw);
+				naddstr(sbctx, str);
+
+				naddstr(sbctx, "#0");
 			}
 #else
 			char str[4];
