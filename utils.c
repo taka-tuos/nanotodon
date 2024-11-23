@@ -1,9 +1,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "nanotodon.h"
 #include "utils.h"
-
-extern char domain_string[256];
 
 // Unicode文字列の幅を返す(半角文字=1)
 int ustrwidth(const char *str)

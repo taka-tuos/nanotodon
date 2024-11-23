@@ -1,3 +1,4 @@
+#include "nanotodon.h"
 #include "sixel.h"
 #include "utils.h"
 #include "config.h"
@@ -42,7 +43,7 @@ void sixel_init()
     ninitbuf(&sb_palinit);
 
 #ifndef USE_RGB222
-#ifndef MONO_SIXEL
+    if (!monoflag) {
 	naddstr(&sb_palinit, "#0;2;0;0;0");
 	naddstr(&sb_palinit, "#1;2;100;0;0");
 	naddstr(&sb_palinit, "#2;2;0;100;0");
@@ -51,10 +52,10 @@ void sixel_init()
 	naddstr(&sb_palinit, "#5;2;100;0;100");
 	naddstr(&sb_palinit, "#6;2;0;100;100");
 	naddstr(&sb_palinit, "#7;2;100;100;100");
-#else
+    } else {
 	naddstr(&sb_palinit, "#0;2;0;0;0");
 	naddstr(&sb_palinit, "#1;2;100;100;100");
-#endif
+    }
 #else
 	for(int i = 0; i < 64; i++) {
 		char str[256];
@@ -328,11 +329,11 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
     naddstr(sbctx, palinit_six);
 
 #ifndef USE_RGB222
-#ifndef MONO_SIXEL
-	const int buf_siz = 8;
-#else
-	const int buf_siz = 1;
-#endif
+    int buf_siz;
+    if (!monoflag) 
+	buf_siz = 8;
+    else
+	buf_siz = 1;
 #else
 	const int buf_siz = 64;
 #endif
@@ -346,18 +347,18 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 		for(int x = 0; x < sw; x++) {
 			for(int i = y * 6, j = 0; j < 6; i++, j++) {
 #ifndef USE_RGB222
-#ifndef MONO_SIXEL
+			    if (!monoflag) {
 				int d =
 					((sb[(i * sw + x) * 4 + 0] >> 2) >= dither_bayer[i&7][x&7] ? 1 : 0) |
 					((sb[(i * sw + x) * 4 + 1] >> 2) >= dither_bayer[i&7][x&7] ? 2 : 0) |
 					((sb[(i * sw + x) * 4 + 2] >> 2) >= dither_bayer[i&7][x&7] ? 4 : 0);
 				dat[d * dw + x] |= 1 << j;
-#else
+			    } else {
 				int r = sb[(i * sw + x) * 4 + 0];
 				int g = sb[(i * sw + x) * 4 + 1];
 				int b = sb[(i * sw + x) * 4 + 2];
 				dat[x] |= (((((r + b) >> 1) + g) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 0 : 1 << j;
-#endif
+			    }
 #else
 				int d =
 					((CLIP_CH(sb[(i * sw + x) * 4 + 0] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 4) |
@@ -375,15 +376,11 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 		for(int i = 0; i < buf_siz; i++) {
 			naddch(sbctx, '#');
 #ifndef USE_RGB222
-#ifndef MONO_SIXEL
-			naddch(sbctx, '0' + i);
-#else
-			char str[8];
-			sprintf(str, "0!%d", sw);
-			//naddstr(sbctx, str);
-
-			naddstr(sbctx, "0");
-#endif
+			if (!monoflag) {
+				naddch(sbctx, '0' + i);
+			} else {
+				naddstr(sbctx, "0");
+			}
 #else
 			char str[4];
 			sprintf(str, "%d", i);

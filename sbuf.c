@@ -1,8 +1,7 @@
+#include "nanotodon.h"
 #include "sbuf.h"
 #include <string.h>
 #include <stdlib.h>
-
-extern int monoflag;
 
 // Stringバッファ初期化
 void ninitbuf(sbctx_t *sbctx)
