@@ -39,7 +39,7 @@ int prompt_notify = 0;
 void (*streaming_received_handler)(void);
 
 // 受信したストリーミングを処理する関数のポインタ
-void (*stream_event_handler)(sbctx_t *sbctx, struct sjson_node *);
+void (*stream_event_handler)(struct sjson_node *);
 
 // インスタンスにクライアントを登録する
 void do_create_client(char *, char *);
@@ -54,10 +54,10 @@ void do_oauth(char *code, char *ck, char *cs);
 void do_toot(char *);
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
-void stream_event_update(sbctx_t *sbctx, struct sjson_node *);
+void stream_event_update(struct sjson_node *);
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(sbctx_t *sbctx, struct sjson_node *);
+void stream_event_notify(struct sjson_node *);
 
 // アクセストークン文字列
 char access_token[256];
@@ -106,7 +106,7 @@ static size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* dat
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
+void stream_event_notify(sjson_node *jobj_from_string)
 {
 	struct sjson_node *notify_type, *screen_name, *display_name, *status;
 	const char *dname;
@@ -117,6 +117,11 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 	int exist_status = read_json_fom_path(jobj_from_string, "status", &status);
 
 	putchar('\a');
+
+	sbctx_t sb;
+	sbctx_t *sbctx = &sb;
+
+	ninitbuf(&sb);
 
 	// 通知種別を表示に流用するので先頭を大文字化
 	char *t = strdup(notify_type->string_);
@@ -145,12 +150,13 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 
 	type = status->tag;
 
+	nflushcache(&sb);
+	squeue_enqueue(sb);
+
 	// 通知対象のTootを表示,Follow通知だとtypeがNULLになる
 	if(type != SJSON_NULL && exist_status) {
-		stream_event_update(sbctx, status);
+		stream_event_update(status);
 	}
-
-	naddstr(sbctx, "\n");
 
 	//wrefresh(scr);
 
@@ -160,7 +166,7 @@ void stream_event_notify(sbctx_t *sbctx, sjson_node *jobj_from_string)
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
 #define DATEBUFLEN	40
-void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
+void stream_event_update(struct sjson_node *jobj_from_string)
 {
 	struct sjson_node *content, *screen_name, *display_name, *reblog, *visibility;
 	const char *sname, *dname, *vstr;
@@ -209,26 +215,48 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 
 	// ブーストで回ってきた場合はその旨を表示
 	if(type != SJSON_NULL) {
-		nattron(sbctx,  COLOR_PAIR(3));
-		if(!noemojiflag) naddstr(sbctx,  "🔃 ");
-		naddstr(sbctx,  "Reblog by ");
-		naddstr(sbctx,  sname);
+		sbctx_t sb_reb;
+		sbctx_t *sbctx_reb = &sb_reb;
+
+		ninitbuf(&sb_reb);
+
+		nattron(sbctx_reb,  COLOR_PAIR(3));
+		if(!noemojiflag) naddstr(sbctx_reb,  "🔃 ");
+		naddstr(sbctx_reb,  "Reblog by ");
+		naddstr(sbctx_reb,  sname);
 		// dname(表示名)が空の場合は括弧を表示しない
 		if (dname[0] != '\0') {
-			naddstr(sbctx,  " (");
-			naddstr(sbctx,  dname);
-			naddstr(sbctx,  ")");
+			naddstr(sbctx_reb,  " (");
+			naddstr(sbctx_reb,  dname);
+			naddstr(sbctx_reb,  ")");
 		}
-		naddstr(sbctx,  "\n");
-		nattroff(sbctx,  COLOR_PAIR(3));
-		stream_event_update(sbctx, reblog);
+		naddstr(sbctx_reb,  "\n");
+		nattroff(sbctx_reb,  COLOR_PAIR(3));
+
+		nflushcache(&sb_reb);
+		squeue_enqueue(sb_reb);
+
+		stream_event_update(reblog);
 		return;
 	}
 
 #ifdef USE_SIXEL
-	print_picture(sbctx, avatar->string_, SIXEL_MUL_ICO);
+	sbctx_t sb_avt;
+	sbctx_t *sbctx_avt = &sb_avt;
+
+	ninitbuf(&sb_avt);
+
+	print_picture(sbctx_avt, avatar->string_, SIXEL_MUL_ICO);
+
+	nflushcache(&sb_avt);
+	squeue_enqueue(sb_avt);
 	//naddstr(sbctx, "\n");
 #endif
+
+	sbctx_t sb;
+	sbctx_t *sbctx = &sb;
+
+	ninitbuf(&sb);
 
 	// 誰からか[ screen_name(display_name) ]を表示
 	nattron(sbctx,  COLOR_PAIR(1)|A_BOLD);
@@ -333,6 +361,9 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 
 	naddstr(sbctx,  "\n");
 
+	nflushcache(&sb);
+	squeue_enqueue(sb);
+
 	// 添付メディアのURL表示
 	struct sjson_node *media_attachments;
 
@@ -340,24 +371,37 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 
 	if(media_attachments->tag == SJSON_ARRAY) {
 		for (int i = 0; i < sjson_child_count(media_attachments); ++i) {
+			sbctx_t sb_att;
+			sbctx_t *sbctx_att = &sb_att;
+
+			ninitbuf(&sb_att);
+
 			struct sjson_node *obj = sjson_find_element(media_attachments, i);
 			struct sjson_node *url;
 			read_json_fom_path(obj, "url", &url);
 			if(url->tag == SJSON_STRING) {
-				naddstr(sbctx,  noemojiflag ? "<LINK>" : "🔗");
-				naddstr(sbctx,  url->string_);
-				naddstr(sbctx,  "\n");
+				naddstr(sbctx_att,  noemojiflag ? "<LINK>" : "🔗");
+				naddstr(sbctx_att,  url->string_);
+				naddstr(sbctx_att,  "\n");
 #ifdef USE_SIXEL
 				struct sjson_node *type;
 				read_json_fom_path(obj, "type", &type);
 				if(!strcmp(type->string_, "image")) {
-					print_picture(sbctx, url->string_, SIXEL_MUL_PIC | fnsfw);
-					naddstr(sbctx,  "\n");
+					print_picture(sbctx_att, url->string_, SIXEL_MUL_PIC | fnsfw);
+					naddstr(sbctx_att,  "\n");
 				}
 #endif
 			}
+
+			nflushcache(&sb_att);
+			squeue_enqueue(sb_att);
 		}
 	}
+
+	sbctx_t sb_end;
+	sbctx_t *sbctx_end = &sb_end;
+
+	ninitbuf(&sb_end);
 
 	// 投稿アプリ名表示
 	struct sjson_node *application_name;
@@ -368,19 +412,23 @@ void stream_event_update(sbctx_t *sbctx, struct sjson_node *jobj_from_string)
 		type = application_name->tag;
 
 		if(type != SJSON_NULL) {
-			naddstr(sbctx,  " - ");
+			naddstr(sbctx_end,  " - ");
 
-			nattron(sbctx,  COLOR_PAIR(1));
-			naddstr(sbctx,  "via ");
-			nattroff(sbctx,  COLOR_PAIR(1));
-			nattron(sbctx,  COLOR_PAIR(2));
-			naddstr(sbctx,  application_name->string_);
-			naddstr(sbctx,  "\n");
-			nattroff(sbctx,  COLOR_PAIR(2));
+			nattron(sbctx_end,  COLOR_PAIR(1));
+			naddstr(sbctx_end,  "via ");
+			nattroff(sbctx_end,  COLOR_PAIR(1));
+			nattron(sbctx_end,  COLOR_PAIR(2));
+			naddstr(sbctx_end,  application_name->string_);
+			naddstr(sbctx_end,  "\n");
+			nattroff(sbctx_end,  COLOR_PAIR(2));
 		}
 	}
 
-	naddstr(sbctx, "\n\n");
+	naddstr(sbctx_end, "\n\n");
+
+	nflushcache(&sb_end);
+	squeue_enqueue(sb_end);
+
 	//wrefresh(scr);
 
 	/*wmove(pad, pad_x, pad_y);
@@ -416,13 +464,13 @@ static void streaming_received(void)
 			sjson_context* ctx = sjson_create_context(0, 0, NULL);
 			struct sjson_node *jobj_from_string = sjson_decode(ctx, streaming_json + 6);
 
-			sbctx_t sb;
-			ninitbuf(&sb);
+			//sbctx_t sb;
+			//ninitbuf(&sb);
 
-			stream_event_handler(&sb, jobj_from_string);
+			stream_event_handler(jobj_from_string);
 
-			nflushcache(&sb);
-			squeue_enqueue(sb);
+			//nflushcache(&sb);
+			//squeue_enqueue(sb);
 
 			sjson_destroy_context(ctx);
 			stream_event_handler = NULL;
@@ -751,13 +799,13 @@ void get_timeline(void)
 		for (int i = sjson_child_count(jobj_from_string) - 1; i >= 0; i--) {
 			struct sjson_node *obj = sjson_find_element(jobj_from_string, i);
 
-			sbctx_t sb;
-			ninitbuf(&sb);
+			//sbctx_t sb;
+			//ninitbuf(&sb);
 
-			stream_event_update(&sb, obj);
+			stream_event_update(obj);
 
-			nflushcache(&sb);
-			squeue_enqueue(sb);
+			//nflushcache(&sb);
+			//squeue_enqueue(sb);
 		}
 	}
 
