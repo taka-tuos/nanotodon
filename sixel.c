@@ -37,13 +37,13 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
 
 void sixel_init()
 {
-    sbctx_t sb_errpic;
-    sbctx_t sb_palinit;
+	sbctx_t sb_errpic;
+	sbctx_t sb_palinit;
 
-    ninitbuf(&sb_palinit);
+	ninitbuf(&sb_palinit);
 
 #ifndef USE_RGB222
-    if (!monoflag) {
+	if (!monoflag) {
 	naddstr(&sb_palinit, "#0;2;0;0;0");
 	naddstr(&sb_palinit, "#1;2;100;0;0");
 	naddstr(&sb_palinit, "#2;2;0;100;0");
@@ -52,10 +52,10 @@ void sixel_init()
 	naddstr(&sb_palinit, "#5;2;100;0;100");
 	naddstr(&sb_palinit, "#6;2;0;100;100");
 	naddstr(&sb_palinit, "#7;2;100;100;100");
-    } else {
+	} else {
 	naddstr(&sb_palinit, "#0;2;0;0;0");
 	naddstr(&sb_palinit, "#1;2;100;100;100");
-    }
+	}
 #else
 	for(int i = 0; i < 64; i++) {
 		char str[256];
@@ -71,10 +71,10 @@ void sixel_init()
 	}
 #endif
 
-    nflushcache(&sb_palinit);
+	nflushcache(&sb_palinit);
 
-    palinit_six = sb_palinit.buf;
-    palinit_six[sb_palinit.bufptr] = 0;
+	palinit_six = sb_palinit.buf;
+	palinit_six[sb_palinit.bufptr] = 0;
 
 	strcpy(cpath_buffer, config.cache_dir);
 	cpath_ptr = cpath_buffer + strlen(config.cache_dir);
@@ -165,7 +165,7 @@ void generate_hash(char *uri, char *out)
 void print_picture(sbctx_t *sbctx, char *uri, int mul)
 {
 	CURL *curl;
-    struct rawBuffer *buf;
+	struct rawBuffer *buf;
 
 	char cpath[] = "/                .six";
 
@@ -200,25 +200,25 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	//nputbuf(sbctx, "cache MISS.\n", 12);
 
-    buf = (struct rawBuffer *)malloc(sizeof(struct rawBuffer));
-    buf->data = NULL;
-    buf->data_size = 0;
+	buf = (struct rawBuffer *)malloc(sizeof(struct rawBuffer));
+	buf->data = NULL;
+	buf->data_size = 0;
 
-    curl = curl_easy_init();
-    curl_easy_setopt(curl, CURLOPT_URL, uri);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, buf);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, buffer_writer);
+	curl = curl_easy_init();
+	curl_easy_setopt(curl, CURLOPT_URL, uri);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, buf);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, buffer_writer);
 
-    curl_easy_perform(curl);
-    curl_easy_cleanup(curl);
+	curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
 
 	int sl = strlen(uri);
 
 	int ix = 0, iy = 0, ic = 0;
 	stbi_uc *ib = (stbi_uc *)0;
 	if(uri[sl - 1] != 'p') {
-    	ib = stbi_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
+		ib = stbi_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
 	} else {
 #ifdef USE_WEBP
 		ib = webp_load_from_memory(buf->data, buf->data_size, &ix, &iy, &ic, 4);
@@ -229,11 +229,11 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	ninitbuf(&sb2);
 
 	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) {
-        if(mul == SIXEL_MUL_PIC) naddstr(&sb2, errpic_six_pic);
+		if(mul == SIXEL_MUL_PIC) naddstr(&sb2, errpic_six_pic);
 		else if(mul == SIXEL_MUL_ICO) naddstr(&sb2, errpic_six_ico);
 	} else {
-        sixel_out(&sb2, ix, iy, ic, ib, mul);
-    }
+		sixel_out(&sb2, ix, iy, ic, ib, mul);
+	}
 
 	nflushcache(&sb2);
 
@@ -248,13 +248,13 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	free(sb2.buf);
 
-    free(buf->data);
-    free(buf);
+	free(buf->data);
+	free(buf);
 }
 
 void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 {
-    if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
+	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
 
 	uint32_t mnsfw = mul & 0x100 ? 0xfffffffc : 0xffffffff;
 	uint32_t delta = mul & 0x100 ? 4 : 1;
@@ -326,13 +326,13 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 
 	naddstr(sbctx, "\eP7;q");
 
-    naddstr(sbctx, palinit_six);
+	naddstr(sbctx, palinit_six);
 
 #ifndef USE_RGB222
-    int buf_siz;
-    if (!monoflag) 
+	int buf_siz;
+	if (!monoflag) 
 	buf_siz = 8;
-    else
+	else
 	buf_siz = 1;
 #else
 	const int buf_siz = 64;
@@ -347,18 +347,18 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 		for(int x = 0; x < sw; x++) {
 			for(int i = y * 6, j = 0; j < 6; i++, j++) {
 #ifndef USE_RGB222
-			    if (!monoflag) {
+				if (!monoflag) {
 				int d =
 					((sb[(i * sw + x) * 4 + 0] >> 2) >= dither_bayer[i&7][x&7] ? 1 : 0) |
 					((sb[(i * sw + x) * 4 + 1] >> 2) >= dither_bayer[i&7][x&7] ? 2 : 0) |
 					((sb[(i * sw + x) * 4 + 2] >> 2) >= dither_bayer[i&7][x&7] ? 4 : 0);
 				dat[d * dw + x] |= 1 << j;
-			    } else {
+				} else {
 				int r = sb[(i * sw + x) * 4 + 0];
 				int g = sb[(i * sw + x) * 4 + 1];
 				int b = sb[(i * sw + x) * 4 + 2];
 				dat[x] |= (((((r + b) >> 1) + g) >> 1) >> 2) >= dither_bayer[i&7][x&7] ? 0 : 1 << j;
-			    }
+				}
 #else
 				int d =
 					((CLIP_CH(sb[(i * sw + x) * 4 + 0] + (dither_bayer[i&7][x&7] - 32)) >> 6) << 4) |
