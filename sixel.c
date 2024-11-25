@@ -44,17 +44,17 @@ void sixel_init()
 
 #ifndef USE_RGB222
 	if (!monoflag) {
-	naddstr(&sb_palinit, "#0;2;0;0;0");
-	naddstr(&sb_palinit, "#1;2;100;0;0");
-	naddstr(&sb_palinit, "#2;2;0;100;0");
-	naddstr(&sb_palinit, "#3;2;100;100;0");
-	naddstr(&sb_palinit, "#4;2;0;0;100");
-	naddstr(&sb_palinit, "#5;2;100;0;100");
-	naddstr(&sb_palinit, "#6;2;0;100;100");
-	naddstr(&sb_palinit, "#7;2;100;100;100");
+		naddstr(&sb_palinit, "#0;2;0;0;0");
+		naddstr(&sb_palinit, "#1;2;100;0;0");
+		naddstr(&sb_palinit, "#2;2;0;100;0");
+		naddstr(&sb_palinit, "#3;2;100;100;0");
+		naddstr(&sb_palinit, "#4;2;0;0;100");
+		naddstr(&sb_palinit, "#5;2;100;0;100");
+		naddstr(&sb_palinit, "#6;2;0;100;100");
+		naddstr(&sb_palinit, "#7;2;100;100;100");
 	} else {
-	naddstr(&sb_palinit, "#0;2;0;0;0");
-	naddstr(&sb_palinit, "#1;2;100;100;100");
+		naddstr(&sb_palinit, "#0;2;0;0;0");
+		naddstr(&sb_palinit, "#1;2;100;100;100");
 	}
 #else
 	for(int i = 0; i < 64; i++) {
@@ -331,9 +331,9 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 #ifndef USE_RGB222
 	int buf_siz;
 	if (!monoflag) 
-	buf_siz = 8;
+		buf_siz = 8;
 	else
-	buf_siz = 1;
+		buf_siz = 1;
 #else
 	const int buf_siz = 64;
 #endif
