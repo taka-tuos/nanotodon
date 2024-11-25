@@ -4,6 +4,8 @@
 #include "config.h"
 #include <curl/curl.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
 
 #ifdef USE_WEBP
 #include <webp/decode.h>
@@ -31,6 +33,10 @@ extern struct nanotodon_config config;
 char cpath_buffer[512];
 char *cpath_ptr;
 
+static int indent_icon;
+#define DEF_FONT_WIDTH	7
+#define DEF_FONT_HEIGHT	14
+
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
 
 void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
@@ -39,6 +45,31 @@ void sixel_init()
 {
 	sbctx_t sb_errpic;
 	sbctx_t sb_palinit;
+	struct winsize ws;
+	int fontwidth, fontheight;
+	int err;
+
+	// ウインドウサイズからフォントサイズサイズを算出
+	fontwidth  = 0;
+	fontheight = 0;
+	err = ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
+	if (err == 0) {
+		if (ws.ws_col != 0) {
+			fontwidth = ws.ws_xpixel / ws.ws_col;
+		}
+		if (ws.ws_row != 0) {
+			fontheight = ws.ws_ypixel / ws.ws_row;
+		}
+	}
+	if (fontwidth == 0) {
+		fontwidth = DEF_FONT_WIDTH;
+	}
+	if (fontheight == 0) {
+		fontheight = DEF_FONT_HEIGHT;
+	}
+
+	// アイコン横幅分相当のインデント文字数 (最低1ドットは離す)
+	indent_icon = ((6 * SIXEL_MUL_ICO) / fontwidth) + 1;
 
 	ninitbuf(&sb_palinit);
 
@@ -401,6 +432,17 @@ void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 
 	free(dat);
 	free(sb);
+}
+
+void move_cursor_to_avatar(sbctx_t *sbctx)
+{
+	char escbuf[2 + 2 + 1 + 1];	/* ESC + [ + 2digits + C + NUL */
+
+	// 1行上に移動
+	naddstr(sbctx, "\e[1A");
+	// アイコン幅分だけ右に移動
+	snprintf(escbuf, sizeof escbuf, "\e[%dC", indent_icon);
+	naddstr(sbctx, escbuf);
 }
 
 #endif
