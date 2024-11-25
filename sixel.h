@@ -7,6 +7,7 @@
 #define SIXEL_MUL_ICO 8
 
 void print_picture(sbctx_t *sbctx, char *uri, int mul);
+void move_cursor_to_avatar(sbctx_t *sbctx);
 void sixel_init(void);
 
 #endif

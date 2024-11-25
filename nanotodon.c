@@ -248,6 +248,9 @@ void stream_event_update(struct sjson_node *jobj_from_string)
 
 	print_picture(sbctx_avt, avatar->string_, SIXEL_MUL_ICO);
 
+	// アイコン右側にカーソル移動
+	move_cursor_to_avatar(sbctx_avt);
+
 	nflushcache(&sb_avt);
 	squeue_enqueue(sb_avt);
 	//naddstr(sbctx, "\n");
