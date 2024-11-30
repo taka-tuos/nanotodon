@@ -41,7 +41,7 @@ static int indent_icon;
 
 void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
 
-void sixel_init()
+void sixel_init(void)
 {
 	sbctx_t sb_errpic;
 	sbctx_t sb_palinit;

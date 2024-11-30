@@ -5,7 +5,7 @@ pthread_mutex_t queue_mutex;
 int queue_head;
 int queue_num;
 
-void squeue_init()
+void squeue_init(void)
 {
 	pthread_mutex_init(&queue_mutex, NULL);
 	queue_head = 0;
