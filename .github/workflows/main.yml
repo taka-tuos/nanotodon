@@ -42,9 +42,9 @@ jobs:
           echo Build with USE_SIXEL
           make clean
           CFLAGS="-DUSE_SIXEL" make
-          echo Build with USE_WEBP
+          echo Build with USE_SIXEL and USE_WEBP
           make clean
-          CFLAGS="-DUSE_WEBP" LDLIBS="-lwebp" make
+          CFLAGS="-DUSE_SIXEL -DUSE_WEBP" LDLIBS="-lwebp" make
 
   build-linux-qemu:
     name: "build-linux qemu"
@@ -95,9 +95,9 @@ jobs:
             echo Build with USE_SIXEL
             make clean
             CFLAGS="-DUSE_SIXEL" make
-            echo Build with USE_WEBP
+            echo Build with USE_SIXEL and USE_WEBP
             make clean
-            CFLAGS="-DUSE_WEBP" LDLIBS="-lwebp" make
+            CFLAGS="-DUSE_SIXEL -DUSE_WEBP" LDLIBS="-lwebp" make
 
   build-netbsd:
     name: "build-netbsd (NetBSD/amd64 10.0 with pkgsrc)"
@@ -121,9 +121,9 @@ jobs:
             echo Build with USE_SIXEL
             make clean
             CFLAGS="-I/usr/pkg/include -DUSE_SIXEL" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" make
-            echo Build with USE_WEBP
+            echo Build with USE_SIXEL and USE_WEBP
             make clean
-            CFLAGS="-I/usr/pkg/include -DUSE_WEBP" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" LDLIBS="-lwebp" make
+            CFLAGS="-I/usr/pkg/include -DUSE_SIXEL -DUSE_WEBP" LDFLAGS="-L/usr/pkg/lib -Wl,-R/usr/pkg/lib" LDLIBS="-lwebp" make
 
   build-openbsd:
     name: "build-openbsd (OpenBSD/amd64 7.6 with ports)"
@@ -147,9 +147,9 @@ jobs:
             echo Build with USE_SIXEL
             make clean
             CFLAGS="-I/usr/local/include -DUSE_SIXEL" LDFLAGS="-L/usr/local/lib" make
-            echo Build with USE_WEBP
+            echo Build with USE_SIXEL and USE_WEBP
             make clean
-            CFLAGS="-I/usr/local/include -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
+            CFLAGS="-I/usr/local/include -DUSE_SIXEL -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
 
   build-freesd:
     name: "build-freebsd (FreeBSD/amd64 14.1 with ports)"
@@ -173,6 +173,6 @@ jobs:
             echo Build with USE_SIXEL
             make clean
             CFLAGS="-I/usr/local/include -DUSE_SIXEL" LDFLAGS="-L/usr/local/lib" make
-            echo Build with USE_WEBP
+            echo Build with USE_SIXEL and USE_WEBP
             make clean
-            CFLAGS="-I/usr/local/include -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
+            CFLAGS="-I/usr/local/include -DUSE_SIXEL -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
