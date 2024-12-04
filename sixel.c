@@ -155,10 +155,10 @@ stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, i
 }
 #endif
 
-unsigned int crc32b(unsigned char *message, int maxlen)
+uint32_t crc32b(const uint8_t *message, int maxlen)
 {
 	int i, j;
-	unsigned int byte, crc, mask;
+	uint32_t byte, crc, mask;
 
 	i = 0;
 	crc = 0xFFFFFFFF;
@@ -177,10 +177,11 @@ unsigned int crc32b(unsigned char *message, int maxlen)
 // outはchar[>17]であること
 void generate_hash(char *uri, char *out)
 {
-	int len = strlen(uri) >> 1;
+	const int len = strlen(uri) >> 1;
+	const uint8_t *uribytes = (uint8_t *)uri;
 
-	unsigned int hash1 = crc32b(uri, len);
-	unsigned int hash2 = crc32b(uri + len, len);
+	const uint32_t hash1 = crc32b(uribytes, len);
+	const uint32_t hash2 = crc32b(uribytes + len, len);
 
 	for(int i = 0; i < 4; i++) {
 		out[i*2+0] = "0123456789abcdef"[(hash1 >> (i * 8 + 0)) & 15];
