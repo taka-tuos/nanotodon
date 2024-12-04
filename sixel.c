@@ -209,7 +209,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 
 	FILE *cfp;
 
-	if(cfp = fopen(cpath_buffer, "rb")) {
+	if((cfp = fopen(cpath_buffer, "rb")) != 0) {
 		//nputbuf(sbctx, "cache HIT!\n", 12);
 
 		int len;
