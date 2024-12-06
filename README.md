@@ -34,6 +34,9 @@ CLI Mastodon Client
 - ```-timeline <public|local|home>```  
   - (WIP)流すタイムラインの選択
 
+- ```-tllimit <num>```  
+  - (WIP)起動時にrest APIで取得するトゥート数の指定(デフォルトは 20)
+
 # 投稿方法
 1. TLが流れているときにEnterを押す
 2. ``> ``とプロンプトが出るのでToot内容を入力(``\n``と``\\``が利用できます)
