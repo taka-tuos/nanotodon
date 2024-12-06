@@ -24,14 +24,12 @@
 
 #include "err.png.h"
 
-char *errpic_six_pic;
-char *errpic_six_ico;
-char *palinit_six;
+static char *errpic_six_pic;
+static char *errpic_six_ico;
+static char *palinit_six;
 
-extern struct nanotodon_config config;
-
-char cpath_buffer[512];
-char *cpath_ptr;
+static char cpath_buffer[512];
+static char *cpath_ptr;
 
 static int indent_icon;
 #define DEF_FONT_WIDTH	7
@@ -39,7 +37,12 @@ static int indent_icon;
 
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
 
-void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
+#ifdef USE_WEBP
+static stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp);
+#endif
+static void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
+static uint32_t crc32b(const uint8_t *d, int maxlen);
+static void generate_hash(const char *uri, char *out);
 
 void sixel_init(void)
 {
@@ -140,7 +143,7 @@ void sixel_init(void)
 }
 
 #ifdef USE_WEBP
-stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp)
+static stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp)
 {
 	VP8StatusCode ret; /* webp関数の戻り値格納 */
 	WebPBitstreamFeatures features; /* 入力webpファイルの情報 */
@@ -155,7 +158,7 @@ stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, i
 }
 #endif
 
-static uint32_t crc32_tbl[256] = {
+static const uint32_t crc32_tbl[256] = {
 	0x00000000, 0x77073096,  0xEE0E612C, 0x990951BA,   0x076DC419, 0x706AF48F,  0xE963A535, 0x9E6495A3,
 	0x0EDB8832, 0x79DCB8A4,  0xE0D5E91E, 0x97D2D988,   0x09B64C2B, 0x7EB17CBD,  0xE7B82D07, 0x90BF1D91,
 	0x1DB71064, 0x6AB020F2,  0xF3B97148, 0x84BE41DE,   0x1ADAD47D, 0x6DDDE4EB,  0xF4D4B551, 0x83D385C7,
@@ -190,10 +193,10 @@ static uint32_t crc32_tbl[256] = {
 	0xB3667A2E, 0xC4614AB8,  0x5D681B02, 0x2A6F2B94,   0xB40BBE37, 0xC30C8EA1,  0x5A05DF1B, 0x2D02EF8D
 };
 
-uint32_t crc32b(const uint8_t *d, int maxlen)
+static uint32_t crc32b(const uint8_t *d, int maxlen)
 {
 	uint32_t crc = 0xFFFFFFFF;
-	uint8_t *p = (uint8_t *)d;
+	const uint8_t *p = d;
 
 	for(int i = 0; *p && i < maxlen; i++, p++) {
 		crc = crc32_tbl[(crc ^ *p) & 0xff] ^ (crc >> 8);
@@ -203,7 +206,7 @@ uint32_t crc32b(const uint8_t *d, int maxlen)
 }
 
 // outはchar[>17]であること
-void generate_hash(char *uri, char *out)
+static void generate_hash(const char *uri, char *out)
 {
 	const int len = strlen(uri) >> 1;
 	const uint8_t *uribytes = (uint8_t *)uri;
@@ -312,7 +315,7 @@ void print_picture(sbctx_t *sbctx, char *uri, int mul)
 	free(buf);
 }
 
-void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
+static void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul)
 {
 	if(ix == 0 || iy == 0 || ib == (stbi_uc *)0) return;
 

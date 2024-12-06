@@ -9,10 +9,10 @@ int ustrwidth(const char *str);
 
 void curl_fatal(CURLcode ret, const char *errbuf);
 
-char *create_uri_string(char *api);
+char *create_uri_string(const char *api);
 
-sjson_node *read_json_from_file(char *path, char **json_p, sjson_context **ctx_p);
-int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **dst);
+sjson_node *read_json_from_file(const char *path, char **json_p, sjson_context **ctx_p);
+int read_json_fom_path(struct sjson_node *obj, const char *path, struct sjson_node **dst);
 
 
 struct rawBuffer {

@@ -20,47 +20,47 @@
 #include "utils.h"
 #include "sixel.h"
 
-char *streaming_json = NULL;
+static char *streaming_json = NULL;
 
 #define URI_STREAM "api/v1/streaming/"
 #define URI_TIMELINE "api/v1/timelines/"
 
-char *selected_stream = "user";
-char *selected_timeline = "home";
-char append_timeline[64];
-int limit_timeline = 20;
+static const char *selected_stream = "user";
+static const char *selected_timeline = "home";
+static char append_timeline[64];
+static int limit_timeline = 20;
 
 #define CURL_USERAGENT "curl/" LIBCURL_VERSION
 
-pthread_mutex_t prompt_mutex;
-int prompt_notify = 0;
+static pthread_mutex_t prompt_mutex;
+static int prompt_notify = 0;
 
 // ストリーミングを受信する関数のポインタ
-void (*streaming_received_handler)(void);
+static void (*streaming_received_handler)(void);
 
 // 受信したストリーミングを処理する関数のポインタ
-void (*stream_event_handler)(struct sjson_node *);
+static void (*stream_event_handler)(struct sjson_node *);
 
 // インスタンスにクライアントを登録する
-void do_create_client(char *, char *);
+static void do_create_client(char *, char *);
 
 // Timelineの受信
-void get_timeline(void);
+static void get_timeline(void);
 
 // 承認コードを使ったOAuth処理
-void do_oauth(char *code, char *ck, char *cs);
+static void do_oauth(char *code, char *ck, char *cs);
 
 // Tootを行う
-void do_toot(char *);
+static void do_toot(char *);
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
-void stream_event_update(struct sjson_node *);
+static void stream_event_update(struct sjson_node *);
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(struct sjson_node *);
+static void stream_event_notify(struct sjson_node *);
 
 // アクセストークン文字列
-char access_token[256];
+static char access_token[256];
 
 // ドメイン文字列
 char domain_string[256];
@@ -69,8 +69,8 @@ char domain_string[256];
 struct nanotodon_config config;
 
 int monoflag = 0;
-int hidlckflag = 1;
-int noemojiflag = 0;
+static int hidlckflag = 1;
+static int noemojiflag = 0;
 
 // curlから呼び出されるストリーミング受信関数
 static size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* data) {
@@ -106,7 +106,7 @@ static size_t streaming_callback(void* ptr, size_t size, size_t nmemb, void* dat
 }
 
 // ストリーミングでの通知受信処理,stream_event_handlerへ代入
-void stream_event_notify(sjson_node *jobj_from_string)
+static void stream_event_notify(sjson_node *jobj_from_string)
 {
 	struct sjson_node *notify_type, *screen_name, *display_name, *status;
 	const char *dname;
@@ -166,7 +166,7 @@ void stream_event_notify(sjson_node *jobj_from_string)
 
 // ストリーミングでのToot受信処理,stream_event_handlerへ代入
 #define DATEBUFLEN	40
-void stream_event_update(struct sjson_node *jobj_from_string)
+static void stream_event_update(struct sjson_node *jobj_from_string)
 {
 	struct sjson_node *content, *screen_name, *display_name, *reblog, *visibility;
 	const char *sname, *dname, *vstr;
@@ -553,7 +553,7 @@ static void *prompt_thread_func(void *param)
 }
 
 // インスタンスにクライアントを登録する
-void do_create_client(char *domain, char *dot_ckcs)
+static void do_create_client(char *domain, char *dot_ckcs)
 {
 	CURLcode ret;
 	CURL *hnd;
@@ -606,7 +606,7 @@ void do_create_client(char *domain, char *dot_ckcs)
 }
 
 // 承認コードを使ったOAuth処理
-void do_oauth(char *code, char *ck, char *cs)
+static void do_oauth(char *code, char *ck, char *cs)
 {
 	char fields[512];
 	sprintf(fields, "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&scope=read%%20write%%20follow", ck, cs, code);
@@ -664,7 +664,7 @@ void do_oauth(char *code, char *ck, char *cs)
 }
 
 // Tootを行う
-void do_toot(char *s)
+static void do_toot(char *s)
 {
 	CURLcode ret;
 	CURL *hnd;
@@ -754,7 +754,7 @@ static size_t htl_callback(void* ptr, size_t size, size_t nmemb, void* data) {
 }
 
 // Timelineの受信
-void get_timeline(void)
+static void get_timeline(void)
 {
 	CURLcode ret;
 	CURL *hnd;
