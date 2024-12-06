@@ -47,12 +47,19 @@ CLI Mastodon Client
 # 詳しいガイド
 TBW  
 
-# 動いてるっぽい環境(24/06/11)
+# 動いてるっぽい環境(24/12/07)
 - WSL2 + VSCode Terminal(w/ Sixel)
 - WSL2 + Windows Terminal
 - OpenBSD/amd64
-- NetBSD/i386 10.0
+- NetBSD/i386 10.0 (w/ Sixel)
 - NetBSD/evbppc 10.0 (on Nintendo Wii)
+- NetBSD/amd64 10.0 (w/ Sixel)
+- NetBSD/evbarm 10.0 (w/ Sixel)
+- NetBSD/luna68k 10.0 (w/ Sixel)
+- NetBSD/vax 10.0 (w/ Sixel)
+- NetBSD/mac68k 10.0 (w/ Sixel)
+- NetBSD/hp300 10.0 (w/ Sixel)
+- NetBSD/sun3 10.0 (w/ Sixel)
 
 # ~~テスト済み環境(0.1.x-0.3.x)~~
 - ~~NetBSD/luna68k + mlterm~~
