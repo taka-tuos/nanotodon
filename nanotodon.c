@@ -48,7 +48,7 @@ static void do_create_client(char *, char *);
 static void get_timeline(void);
 
 // 承認コードを使ったOAuth処理
-static void do_oauth(char *code, char *ck, char *cs);
+static void do_oauth(char *, char *, char *);
 
 // Tootを行う
 static void do_toot(char *);

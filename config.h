@@ -13,8 +13,8 @@ struct nanotodon_config {
 	char cache_dir[256];
 };
 
-int nano_config_init(struct nanotodon_config *config);
+int nano_config_init(struct nanotodon_config *);
 
-int nano_config_app_token_filename(struct nanotodon_config *config, const char* domain, char *buf, size_t buf_length);
+int nano_config_app_token_filename(struct nanotodon_config *, const char *, char *, size_t);
 
 #endif

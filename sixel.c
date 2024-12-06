@@ -38,11 +38,11 @@ static int indent_icon;
 #define CLIP_CH(n) ((n) > 255 ? 255 : (n) < 0 ? 0 : (n))
 
 #ifdef USE_WEBP
-static stbi_uc *webp_load_from_memory(stbi_uc const *buffer, int len, int *x, int *y, int *comp, int req_comp);
+static stbi_uc *webp_load_from_memory(stbi_uc const *, int, int *, int *, int *, int);
 #endif
-static void sixel_out(sbctx_t *sbctx, int ix, int iy, int ic, stbi_uc *ib, int mul);
-static uint32_t crc32b(const uint8_t *d, int maxlen);
-static void generate_hash(const char *uri, char *out);
+static void sixel_out(sbctx_t *, int, int, int, stbi_uc *, int);
+static uint32_t crc32b(const uint8_t *, int);
+static void generate_hash(const char *, char *);
 
 void sixel_init(void)
 {

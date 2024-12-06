@@ -11,11 +11,11 @@
 
 #define APP_TOKEN_DIR "/app_token"
 
-static int make_config_dir(const char* path);
-static void make_config_dir_or_die(const char* path);
+static int make_config_dir(const char *);
+static void make_config_dir_or_die(const char *);
 
 #ifdef SUPPORT_XDG_BASE_DIR
-static int init_xdg(struct nanotodon_config *config, const char* xdg_config_home, const char* xdg_config_cache);
+static int init_xdg(struct nanotodon_config *, const char *, const char *);
 #endif
 
 static int make_config_dir(const char* path)
