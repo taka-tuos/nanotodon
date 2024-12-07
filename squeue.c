@@ -1,9 +1,9 @@
 #include "squeue.h"
 
-sbctx_t queue_data[QUEUE_SIZE];
-pthread_mutex_t queue_mutex;
-int queue_head;
-int queue_num;
+static sbctx_t queue_data[QUEUE_SIZE];
+static pthread_mutex_t queue_mutex;
+static int queue_head;
+static int queue_num;
 
 void squeue_init(void)
 {

@@ -7,7 +7,7 @@
 #define QUEUE_SIZE 512
 
 void squeue_init(void);
-int squeue_enqueue(sbctx_t enq_data);
-int squeue_dequeue(sbctx_t *deq_data);
+int squeue_enqueue(sbctx_t);
+int squeue_dequeue(sbctx_t *);
 
 #endif

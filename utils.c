@@ -69,14 +69,14 @@ void curl_fatal(CURLcode ret, const char *errbuf)
 }
 
 // domain_stringとapiエンドポイントを合成してURLを生成する
-char *create_uri_string(char *api)
+char *create_uri_string(const char *api)
 {
 	char *s = malloc(256);
 	sprintf(s, "https://%s/%s", domain_string, api);
 	return s;
 }
 
-sjson_node *read_json_from_file(char *path, char **json_p, sjson_context **ctx_p)
+sjson_node *read_json_from_file(const char *path, char **json_p, sjson_context **ctx_p)
 {
 	char *json;
 	FILE *f = fopen(path, "rb");
@@ -102,7 +102,7 @@ sjson_node *read_json_from_file(char *path, char **json_p, sjson_context **ctx_p
 }
 
 // jsonツリーをパス形式(ex. "account/display_name")で掘ってjson_objectを取り出す
-int read_json_fom_path(struct sjson_node *obj, char *path, struct sjson_node **dst)
+int read_json_fom_path(struct sjson_node *obj, const char *path, struct sjson_node **dst)
 {
 	char *dup = strdup(path);	// strtokは破壊するので複製
 	struct sjson_node *dir = obj;

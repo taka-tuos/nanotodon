@@ -12,12 +12,12 @@ typedef struct {
 #define COLOR_PAIR(n) (n)
 #define A_BOLD 0x80
 
-void ninitbuf(sbctx_t *sbctx);
-void nflushcache(sbctx_t *sbctx);
-void nputbuf(sbctx_t *sbctx, const void *d, int l);
-void nattron(sbctx_t *sbctx, int n);
-void nattroff(sbctx_t *sbctx, int n);
-void naddch(sbctx_t *sbctx, char c);
-void naddstr(sbctx_t *sbctx, const char *s);
+void ninitbuf(sbctx_t *);
+void nflushcache(sbctx_t *);
+void nputbuf(sbctx_t *, const void *, int);
+void nattron(sbctx_t *, int);
+void nattroff(sbctx_t *, int);
+void naddch(sbctx_t *, char);
+void naddstr(sbctx_t *, const char *);
 
 #endif
