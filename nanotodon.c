@@ -12,6 +12,9 @@
 #define SJSON_IMPLEMENT
 #include "sjson.h"
 
+#define JSMN_STATIC
+#include "jsmn.h"
+
 #include "nanotodon.h"
 #include "config.h"
 #include "messages.h"
@@ -791,28 +794,67 @@ static void get_timeline(void)
 	ret = curl_easy_perform(hnd);
 	if(ret != CURLE_OK) curl_fatal(ret, errbuf);
 
+	// toot単位のARRAYをjsmnで要素毎に分割する
+#define TOKENS_PER_TOOT	 256		// 上限はよくわからん
+	const int maxtokens = limit_timeline * TOKENS_PER_TOOT;
+	jsmn_parser parser;
+	jsmntok_t *tokens;
 
-	sjson_context* ctx = sjson_create_context(0, 0, NULL);
-	struct sjson_node *jobj_from_string = sjson_decode(ctx, json);
-	sjson_tag type;
+	jsmn_init(&parser);
+	tokens = malloc(sizeof(jsmntok_t) * maxtokens);
+	const int ntoken = jsmn_parse(&parser, json, strlen(json), tokens, maxtokens);
 
-	type = jobj_from_string->tag;
+	if (ntoken > 0 && tokens[0].type == JSMN_ARRAY) {
+		int i;
+		const int ntoot = tokens[0].size; // limit_timeline分無いかも
 
-	if(type == SJSON_ARRAY) {
-		for (int i = sjson_child_count(jobj_from_string) - 1; i >= 0; i--) {
-			struct sjson_node *obj = sjson_find_element(jobj_from_string, i);
+		// 起動時toot表示用token配列
+		jsmntok_t *toottokens = malloc(sizeof(jsmntok_t) * ntoot);
+		for(i = 0; i < ntoot; i++) {
+			jsmn_fill_token(&toottokens[i], JSMN_UNDEFINED, 0, 0);
+		}
+
+		i = 1;				// 先頭要素JSMN_ARRAYの次から
+		int t = ntoot - 1;		// 最新tootが先頭なので逆順で
+
+		while (i < ntoken) {
+			toottokens[t] = tokens[i];
+			if (t == 0) break;
+			t--;
+
+			// 後続のtokenがtoot内要素だったらスキップ
+			for (int end = tokens[i].end; i < ntoken && tokens[i].start < end; i++)
+				;
+		}
+
+		for(i = 0; i < ntoot; i++) {
+			// JSON ARRAY異常の場合を念の為チェック
+			if (toottokens[i].type != JSMN_OBJECT)
+				continue;
+
+			// 1 toot分のJSON文字列でデコード
+			const int start = toottokens[i].start;
+			const int len   = toottokens[i].end - start;
+			char *tootjson = strndup(json + start, len);
+			sjson_context *ctx = sjson_create_context(0, 0, NULL);
+			struct sjson_node *obj = sjson_decode(ctx, tootjson);
 
 			//sbctx_t sb;
 			//ninitbuf(&sb);
 
-			stream_event_update(obj);
+			if (obj != NULL) {
+				stream_event_update(obj);
+			}
 
 			//nflushcache(&sb);
 			//squeue_enqueue(sb);
-		}
-	}
 
-	sjson_destroy_context(ctx);
+			sjson_destroy_context(ctx);
+			free(tootjson);
+		}
+		free(toottokens);
+	}
+	free(tokens);
 
 	curl_easy_cleanup(hnd);
 	hnd = NULL;
