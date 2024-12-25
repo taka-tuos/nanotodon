@@ -100,7 +100,7 @@ jobs:
             CFLAGS="-DUSE_SIXEL -DUSE_WEBP" LDLIBS="-lwebp" make
 
   build-netbsd:
-    name: "build-netbsd (NetBSD/amd64 10.0 with pkgsrc)"
+    name: "build-netbsd (NetBSD/amd64 10.1 with pkgsrc)"
     runs-on: ubuntu-latest
 
     steps:
@@ -108,7 +108,7 @@ jobs:
       - name: Install packages and run configure and make (on the NetBSD VM)
         uses: vmactions/netbsd-vm@v1
         with:
-          release: "10.0"
+          release: "10.1"
           copyback: false
           prepare: |
             uname -a
@@ -152,7 +152,7 @@ jobs:
             CFLAGS="-I/usr/local/include -DUSE_SIXEL -DUSE_WEBP" LDFLAGS="-L/usr/local/lib" LDLIBS="-lwebp" make
 
   build-freesd:
-    name: "build-freebsd (FreeBSD/amd64 14.1 with ports)"
+    name: "build-freebsd (FreeBSD/amd64 14.2 with ports)"
     runs-on: ubuntu-latest
 
     steps:
@@ -160,7 +160,7 @@ jobs:
       - name: Install packages and run configure and make (on the FreeBSD VM)
         uses: vmactions/freebsd-vm@v1
         with:
-          release: "14.1"
+          release: "14.2"
           copyback: false
           prepare: |
             uname -a
